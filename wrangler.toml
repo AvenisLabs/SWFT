@@ -1,0 +1,11 @@
+# SvelteKit Pages project — deployed via CF Pages
+name = "swft-web"
+compatibility_date = "2025-01-01"
+compatibility_flags = ["nodejs_compat"]
+pages_build_output_dir = ".svelte-kit/cloudflare"
+
+# D1 binding shared with the cron worker
+[[d1_databases]]
+binding = "DB"
+database_name = "swpc-web-db"
+database_id = "4756af4f-cd26-4394-a65f-f35899aa11d8"

@@ -1,0 +1,17 @@
+node_modules/
+.svelte-kit/
+.wrangler/
+build/
+dist/
+.env
+.env.*
+!.env.example
+*.local
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.log
+.vercel/
+.claude/
+txt.txt

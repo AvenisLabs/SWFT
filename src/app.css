@@ -1,0 +1,139 @@
+/* app.css v0.2.0 — Base styles + CSS reset for SWFT */
+
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+	margin: 0;
+	padding: 0;
+}
+
+:root {
+	/* Color palette — dark theme suited for monitoring dashboards */
+	--bg-primary: #0d1117;
+	--bg-secondary: #161b22;
+	--bg-card: #1c2128;
+	--border-default: #30363d;
+	--text-primary: #e6edf3;
+	--text-secondary: #8b949e;
+	--text-muted: #6e7681;
+	--accent-blue: #58a6ff;
+	--accent-green: #3fb950;
+	--accent-yellow: #d29922;
+	--accent-orange: #db6d28;
+	--accent-red: #f85149;
+	--accent-purple: #bc8cff;
+
+	/* Severity scale colors */
+	--severity-low: var(--accent-green);
+	--severity-moderate: var(--accent-yellow);
+	--severity-high: var(--accent-orange);
+	--severity-severe: var(--accent-red);
+	--severity-extreme: #ff4466;
+
+	/* Spacing */
+	--space-xs: 0.25rem;
+	--space-sm: 0.5rem;
+	--space-md: 1rem;
+	--space-lg: 1.5rem;
+	--space-xl: 2rem;
+	--space-2xl: 3rem;
+
+	/* Typography */
+	--font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+	--font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+	--font-size-sm: 0.875rem;
+	--font-size-base: 1rem;
+	--font-size-lg: 1.25rem;
+	--font-size-xl: 1.5rem;
+	--font-size-2xl: 2rem;
+	--font-size-3xl: 2.5rem;
+
+	/* Layout */
+	--max-width: 1200px;
+	--border-radius: 8px;
+	--border-radius-sm: 4px;
+}
+
+html {
+	font-family: var(--font-sans);
+	font-size: 16px;
+	color: var(--text-primary);
+	background: var(--bg-primary);
+	-webkit-font-smoothing: antialiased;
+}
+
+body {
+	min-height: 100vh;
+	line-height: 1.6;
+}
+
+a {
+	color: var(--accent-blue);
+	text-decoration: none;
+}
+
+a:hover {
+	text-decoration: underline;
+}
+
+h1, h2, h3, h4 {
+	line-height: 1.3;
+	font-weight: 600;
+}
+
+/* Utility classes */
+.muted {
+	color: var(--text-muted);
+}
+
+.subtitle {
+	color: var(--text-secondary);
+	font-size: var(--font-size-lg);
+}
+
+/* Card component base */
+.card {
+	background: var(--bg-card);
+	border: 1px solid var(--border-default);
+	border-radius: var(--border-radius);
+	padding: var(--space-lg);
+}
+
+/* Dashboard layout */
+.dashboard {
+	max-width: var(--max-width);
+	margin: 0 auto;
+	padding: var(--space-xl);
+}
+
+.dashboard h1 {
+	font-size: var(--font-size-2xl);
+	margin-bottom: var(--space-xs);
+}
+
+.dashboard .subtitle {
+	margin-bottom: var(--space-xl);
+}
+
+.placeholder-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+	gap: var(--space-lg);
+}
+
+.placeholder-grid .card h2 {
+	font-size: var(--font-size-lg);
+	margin-bottom: var(--space-sm);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+	.dashboard {
+		padding: var(--space-md);
+	}
+
+	.placeholder-grid {
+		grid-template-columns: 1fr;
+	}
+}

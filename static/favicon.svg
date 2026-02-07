@@ -1,0 +1,98 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <!-- Globe gradient: deep blue to teal -->
+    <radialGradient id="globe" cx="45%" cy="40%" r="50%">
+      <stop offset="0%" stop-color="#58a6ff"/>
+      <stop offset="50%" stop-color="#1a6daa"/>
+      <stop offset="100%" stop-color="#0d3b66"/>
+    </radialGradient>
+    <!-- Aurora glow at the top -->
+    <radialGradient id="aurora" cx="50%" cy="15%" r="45%">
+      <stop offset="0%" stop-color="#3fb950" stop-opacity="0.8"/>
+      <stop offset="40%" stop-color="#bc8cff" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#bc8cff" stop-opacity="0"/>
+    </radialGradient>
+    <!-- Outer glow for solar wind interaction -->
+    <radialGradient id="outerGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="70%" stop-color="transparent"/>
+      <stop offset="85%" stop-color="#58a6ff" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#58a6ff" stop-opacity="0"/>
+    </radialGradient>
+    <!-- Shadow for depth -->
+    <radialGradient id="shadow" cx="65%" cy="60%" r="50%">
+      <stop offset="0%" stop-color="transparent"/>
+      <stop offset="100%" stop-color="#000" stop-opacity="0.35"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Background circle (dark space) -->
+  <circle cx="64" cy="64" r="62" fill="#0d1117"/>
+
+  <!-- Outer magnetosphere glow -->
+  <circle cx="64" cy="64" r="56" fill="url(#outerGlow)"/>
+
+  <!-- Globe body -->
+  <circle cx="64" cy="64" r="44" fill="url(#globe)"/>
+
+  <!-- Longitude lines (meridians) -->
+  <g fill="none" stroke="#e6edf3" stroke-width="1" stroke-opacity="0.2">
+    <!-- Center meridian -->
+    <ellipse cx="64" cy="64" rx="0.5" ry="44"/>
+    <!-- Meridians at ~30 deg intervals -->
+    <ellipse cx="64" cy="64" rx="22" ry="44"/>
+    <ellipse cx="64" cy="64" rx="38" ry="44"/>
+  </g>
+
+  <!-- Latitude lines -->
+  <g fill="none" stroke="#e6edf3" stroke-width="1" stroke-opacity="0.2">
+    <ellipse cx="64" cy="42" rx="36" ry="10"/>
+    <ellipse cx="64" cy="64" rx="44" ry="12"/>
+    <ellipse cx="64" cy="86" rx="36" ry="10"/>
+  </g>
+
+  <!-- Simplified continents (stylized land masses) -->
+  <g fill="#3fb950" fill-opacity="0.35">
+    <!-- North America -->
+    <path d="M38,38 Q42,32 50,34 Q54,36 52,42 Q48,48 42,46 Q36,44 38,38Z"/>
+    <!-- South America -->
+    <path d="M48,62 Q52,58 54,62 Q56,70 52,78 Q48,82 46,76 Q44,68 48,62Z"/>
+    <!-- Europe/Africa -->
+    <path d="M66,36 Q72,34 74,40 Q76,48 74,56 Q72,64 68,70 Q64,66 64,58 Q62,48 64,40Z"/>
+    <!-- Asia hint -->
+    <path d="M78,36 Q84,34 88,38 Q90,44 86,46 Q82,44 80,40Z"/>
+  </g>
+
+  <!-- Aurora oval at north pole -->
+  <ellipse cx="64" cy="34" rx="30" ry="14" fill="url(#aurora)"/>
+
+  <!-- Aurora shimmer streaks -->
+  <g stroke="#3fb950" stroke-width="1.5" stroke-opacity="0.5" fill="none" stroke-linecap="round">
+    <path d="M42,30 Q48,22 56,28"/>
+    <path d="M54,26 Q62,18 70,26"/>
+    <path d="M68,28 Q76,20 82,30"/>
+  </g>
+
+  <!-- Southern aurora hint -->
+  <ellipse cx="64" cy="94" rx="26" ry="10" fill="#bc8cff" fill-opacity="0.2"/>
+
+  <!-- Depth shadow overlay -->
+  <circle cx="64" cy="64" r="44" fill="url(#shadow)"/>
+
+  <!-- Subtle rim highlight -->
+  <circle cx="64" cy="64" r="44" fill="none" stroke="#58a6ff" stroke-width="1.5" stroke-opacity="0.3"/>
+
+  <!-- Solar wind particles (small dots approaching from left) -->
+  <g fill="#d29922" fill-opacity="0.7">
+    <circle cx="8" cy="50" r="1.5"/>
+    <circle cx="12" cy="58" r="1"/>
+    <circle cx="6" cy="66" r="1.2"/>
+    <circle cx="14" cy="74" r="0.8"/>
+    <circle cx="10" cy="42" r="1"/>
+  </g>
+
+  <!-- Magnetic field line hints (right side, deflected) -->
+  <g stroke="#58a6ff" stroke-width="0.8" stroke-opacity="0.25" fill="none" stroke-linecap="round">
+    <path d="M110,34 Q120,50 118,64 Q120,78 110,94"/>
+    <path d="M114,38 Q124,52 122,64 Q124,76 114,90"/>
+  </g>
+</svg>
