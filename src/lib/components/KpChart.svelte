@@ -1,4 +1,4 @@
-<!-- KpChart.svelte v0.1.0 — Kp bar chart using inline SVG -->
+<!-- KpChart.svelte v0.2.0 — Kp bar chart using inline SVG (enlarged) -->
 <script lang="ts">
 	import type { KpDataPoint } from '$types/api';
 
@@ -8,9 +8,9 @@
 	let { data }: Props = $props();
 
 	// Chart renders last N data points as a simple bar chart
-	const MAX_BARS = 16;
-	const BAR_HEIGHT = 120;
-	const BAR_WIDTH = 28;
+	const MAX_BARS = 24;
+	const BAR_HEIGHT = 220;
+	const BAR_WIDTH = 40;
 	const GAP = 4;
 
 	// Reverse so oldest is on the left
@@ -41,9 +41,8 @@
 		<p class="muted">No chart data available</p>
 	{:else}
 		<svg
-			viewBox="0 0 {chartWidth} {BAR_HEIGHT + 20}"
+			viewBox="0 0 {chartWidth} {BAR_HEIGHT + 24}"
 			width="100%"
-			height={BAR_HEIGHT + 20}
 			role="img"
 			aria-label="Kp index bar chart"
 		>
@@ -70,16 +69,16 @@
 					y={BAR_HEIGHT - h - 4}
 					text-anchor="middle"
 					fill="var(--text-secondary)"
-					font-size="10"
+					font-size="12"
 					font-family="var(--font-mono)"
 				>{point.kp.toFixed(1)}</text>
 				<!-- Hour label below -->
 				<text
 					x={x + BAR_WIDTH / 2}
-					y={BAR_HEIGHT + 14}
+					y={BAR_HEIGHT + 16}
 					text-anchor="middle"
 					fill="var(--text-muted)"
-					font-size="9"
+					font-size="11"
 				>{formatHour(point.ts)}</text>
 			{/each}
 		</svg>
@@ -91,6 +90,7 @@
 	.kp-chart {
 		overflow-x: auto;
 		padding: var(--space-sm) 0;
+		min-height: 200px;
 	}
 
 	svg {

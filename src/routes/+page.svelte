@@ -1,6 +1,7 @@
-<!-- +page.svelte v0.2.0 — Dashboard home page -->
+<!-- +page.svelte v0.3.0 — Dashboard home with clickable cards, help, risk bar -->
 <script lang="ts">
 	import Card from '$lib/components/Card.svelte';
+	import HelpPopover from '$lib/components/HelpPopover.svelte';
 	import KpDisplay from '$lib/components/KpDisplay.svelte';
 	import KpChart from '$lib/components/KpChart.svelte';
 	import type { KpSummary, GnssRiskResult, AlertItem } from '$types/api';
@@ -27,9 +28,7 @@
 	});
 
 	onMount(() => {
-		// Client-side fetch to hydrate remaining data
 		refreshData();
-		// Auto-refresh every 3 minutes
 		const interval = setInterval(refreshData, 180_000);
 		return () => clearInterval(interval);
 	});
@@ -45,6 +44,41 @@
 		if (risk) { gnssRisk = risk; loadingGnss = false; }
 		if (alertData) { alerts = alertData; loadingAlerts = false; }
 	}
+
+	// Severity badge colors for alert preview
+	const severityColors: Record<string, string> = {
+		minor: 'var(--severity-low)',
+		moderate: 'var(--severity-moderate)',
+		strong: 'var(--severity-high)',
+		extreme: 'var(--severity-extreme)',
+	};
+
+	// Risk level color mapping for risk bar fill
+	const riskLevelColors: Record<string, string> = {
+		Low: 'var(--severity-low)',
+		Moderate: 'var(--severity-moderate)',
+		High: 'var(--severity-high)',
+		Severe: 'var(--severity-severe)',
+		Extreme: 'var(--severity-extreme)',
+	};
+
+	let riskBarColor = $derived(gnssRisk ? riskLevelColors[gnssRisk.level] ?? 'var(--text-muted)' : 'var(--text-muted)');
+
+	function badgeText(alert: AlertItem): string {
+		if (alert.scale_type && alert.scale_value) return `${alert.scale_type}${alert.scale_value}`;
+		return alert.severity;
+	}
+
+	function badgeColor(alert: AlertItem): string {
+		if (alert.scale_type && alert.scale_value) {
+			return severityColors[alert.severity] ?? 'var(--bg-secondary)';
+		}
+		return severityColors[alert.severity] ?? 'var(--bg-secondary)';
+	}
+
+	function truncate(text: string, len: number): string {
+		return text.length > len ? text.slice(0, len) + '...' : text;
+	}
 </script>
 
 <main class="dashboard">
@@ -54,13 +88,25 @@
 	</header>
 
 	<section class="dashboard-grid">
-		<!-- Kp Index Card -->
-		<Card title="Kp Index">
+		<!-- Kp Index Card — links to /gnss -->
+		<Card title="Kp Index" href="/gnss">
+			{#snippet headerExtra()}
+				<HelpPopover
+					id="help-kp"
+					text="The planetary K-index (Kp) measures geomagnetic disturbance on a 0-9 scale. Values >=4 indicate unsettled conditions; >=5 indicates a geomagnetic storm."
+				/>
+			{/snippet}
 			<KpDisplay summary={kpSummary} loading={loadingKp} />
 		</Card>
 
-		<!-- GNSS Risk Card -->
-		<Card title="GNSS Risk">
+		<!-- GNSS Risk Card — links to /gnss -->
+		<Card title="GNSS Risk" href="/gnss">
+			{#snippet headerExtra()}
+				<HelpPopover
+					id="help-gnss"
+					text="Composite risk score (0-100) based on Kp index (35%), Bz magnetic field (25%), solar wind speed (20%), and radio blackout scale (20%). Higher scores mean greater GNSS disruption risk."
+				/>
+			{/snippet}
 			{#if loadingGnss}
 				<div class="placeholder-content">
 					<span class="big-number skeleton">--</span>
@@ -71,29 +117,50 @@
 					<span class="big-number">{gnssRisk.score}</span>
 					<span class="risk-label">{gnssRisk.level}</span>
 				</div>
+				<!-- Risk bar -->
+				<div class="risk-bar-container">
+					<div class="risk-bar-track">
+						<div class="risk-bar-fill" style:width="{gnssRisk.score}%" style:background={riskBarColor}></div>
+						<div class="risk-bar-marker" style:left="{gnssRisk.score}%" style:background={riskBarColor}></div>
+					</div>
+					<div class="risk-bar-labels">
+						<span>0</span>
+						<span>100</span>
+					</div>
+				</div>
 				<p class="advisory-text">{gnssRisk.advisory}</p>
 			{:else}
 				<p class="muted">Risk data unavailable</p>
 			{/if}
 		</Card>
 
-		<!-- Active Alerts Card -->
-		<Card title="Active Alerts">
+		<!-- Active Alerts Card — links to /alerts -->
+		<Card title="Active Alerts" href="/alerts">
+			{#snippet headerExtra()}
+				<HelpPopover
+					id="help-alerts"
+					text="Current space weather alerts issued by NOAA's Space Weather Prediction Center within the last 24 hours."
+				/>
+			{/snippet}
 			{#if loadingAlerts}
 				<p class="muted">Loading alerts&hellip;</p>
 			{:else if alerts.length === 0}
 				<p class="no-alerts">No active alerts</p>
 			{:else}
 				<ul class="alert-list">
-					{#each alerts.slice(0, 5) as alert}
+					{#each alerts.slice(0, 3) as alert, i}
+						{#if i > 0}
+							<li class="alert-separator" aria-hidden="true"></li>
+						{/if}
 						<li class="alert-item" data-severity={alert.severity}>
-							<span class="alert-badge">{alert.severity}</span>
-							<span class="alert-summary">{alert.summary}</span>
+							<span class="alert-badge" style:background={badgeColor(alert)}>{badgeText(alert)}</span>
+							<span class="alert-type">{alert.event_type.replace(/_/g, ' ')}</span>
+							<span class="alert-summary">{truncate(alert.summary, 60)}</span>
 						</li>
 					{/each}
 				</ul>
-				{#if alerts.length > 5}
-					<a href="/alerts" class="view-all">View all {alerts.length} alerts</a>
+				{#if alerts.length > 3}
+					<span class="view-all">View all {alerts.length} alerts &rarr;</span>
 				{/if}
 			{/if}
 		</Card>
@@ -154,6 +221,46 @@
 		margin-top: var(--space-xs);
 	}
 
+	/* GNSS Risk Bar */
+	.risk-bar-container {
+		margin-top: var(--space-md);
+		padding: 0 var(--space-xs);
+	}
+
+	.risk-bar-track {
+		position: relative;
+		height: 8px;
+		background: var(--bg-secondary);
+		border-radius: 4px;
+		overflow: visible;
+	}
+
+	.risk-bar-fill {
+		height: 100%;
+		border-radius: 4px;
+		transition: width 0.6s ease-out;
+	}
+
+	.risk-bar-marker {
+		position: absolute;
+		top: -3px;
+		width: 8px;
+		height: 14px;
+		border-radius: 2px;
+		transform: translateX(-4px);
+		transition: left 0.6s ease-out;
+		opacity: 0.9;
+	}
+
+	.risk-bar-labels {
+		display: flex;
+		justify-content: space-between;
+		margin-top: 2px;
+		font-size: 0.65rem;
+		color: var(--text-muted);
+		font-family: var(--font-mono);
+	}
+
 	.advisory-text {
 		color: var(--text-secondary);
 		font-size: var(--font-size-sm);
@@ -169,7 +276,13 @@
 		list-style: none;
 		display: flex;
 		flex-direction: column;
-		gap: var(--space-sm);
+		gap: var(--space-xs);
+	}
+
+	.alert-separator {
+		height: 1px;
+		background: var(--border-default);
+		margin: var(--space-xs) 0;
 	}
 
 	.alert-item {
@@ -180,22 +293,26 @@
 	}
 
 	.alert-badge {
-		font-size: 0.7rem;
+		font-size: 0.65rem;
 		padding: 2px 6px;
 		border-radius: var(--border-radius-sm);
 		text-transform: uppercase;
-		font-weight: 600;
-		background: var(--bg-secondary);
+		font-weight: 700;
 		white-space: nowrap;
+		color: #fff;
 	}
 
-	.alert-item[data-severity="extreme"] .alert-badge { background: var(--severity-extreme); color: #fff; }
-	.alert-item[data-severity="strong"] .alert-badge { background: var(--severity-severe); color: #fff; }
-	.alert-item[data-severity="moderate"] .alert-badge { background: var(--severity-high); color: #fff; }
-	.alert-item[data-severity="minor"] .alert-badge { background: var(--severity-moderate); color: #000; }
+	.alert-type {
+		font-size: 0.75rem;
+		text-transform: capitalize;
+		color: var(--text-secondary);
+		white-space: nowrap;
+		flex-shrink: 0;
+	}
 
 	.alert-summary {
-		color: var(--text-secondary);
+		color: var(--text-muted);
+		font-size: 0.75rem;
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
@@ -205,6 +322,7 @@
 		display: block;
 		margin-top: var(--space-sm);
 		font-size: var(--font-size-sm);
+		color: var(--accent-blue);
 	}
 
 	.skeleton {

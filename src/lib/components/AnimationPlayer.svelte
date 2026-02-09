@@ -1,4 +1,4 @@
-<!-- AnimationPlayer.svelte v0.1.0 — Client-side frame animation player -->
+<!-- AnimationPlayer.svelte v0.2.0 — Client-side frame animation player -->
 <script lang="ts">
 	import type { AnimationManifest, AnimationFrame } from '$types/api';
 	import { fetchApi } from '$lib/stores/dashboard';
@@ -95,7 +95,7 @@
 				{playing ? '⏸' : '▶'}
 			</button>
 			<button onclick={stepForward} title="Next frame" aria-label="Next frame">&#9654;</button>
-			<span class="frame-info">
+			<span class="frame-info" aria-live="polite">
 				{currentIndex + 1}/{frames.length}
 			</span>
 		</div>

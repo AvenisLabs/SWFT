@@ -1,9 +1,8 @@
-<!-- /events page v0.2.0 — Recent space weather events -->
+<!-- /events page v0.3.0 — Recent space weather events with date grouping -->
 <script lang="ts">
-	import Card from '$lib/components/Card.svelte';
 	import type { EventItem } from '$types/api';
 	import { fetchApi } from '$lib/stores/dashboard';
-	import { formatTimestamp } from '$lib/utils/formatters';
+	import { formatLocal, formatDateHeader, dateKey } from '$lib/utils/timeFormat';
 	import { onMount } from 'svelte';
 
 	let events = $state<EventItem[]>([]);
@@ -21,6 +20,41 @@
 		strong: 'var(--severity-high)',
 		extreme: 'var(--severity-extreme)',
 	};
+
+	// Group events by local date, sorted newest-first
+	interface DateGroup {
+		key: string;
+		header: string;
+		events: EventItem[];
+	}
+
+	let groupedEvents = $derived.by(() => {
+		if (events.length === 0) return [];
+
+		const groups = new Map<string, EventItem[]>();
+		for (const ev of events) {
+			const dk = dateKey(ev.begins);
+			const existing = groups.get(dk);
+			if (existing) {
+				existing.push(ev);
+			} else {
+				groups.set(dk, [ev]);
+			}
+		}
+
+		// Convert map to sorted array, newest date first
+		const result: DateGroup[] = [];
+		for (const [key, evts] of groups) {
+			result.push({
+				key,
+				header: formatDateHeader(evts[0].begins),
+				events: evts,
+			});
+		}
+
+		result.sort((a, b) => b.key.localeCompare(a.key));
+		return result;
+	});
 </script>
 
 <svelte:head>
@@ -41,26 +75,29 @@
 		{:else if events.length === 0}
 			<p class="empty-state">No recent events detected</p>
 		{:else}
-			{#each events as event (event.id)}
-				<a href="/events/{event.id}" class="event-link">
-					<article class="event-card">
-						<div class="event-header">
-							<span class="severity-dot" style:background={severityColors[event.severity] ?? 'var(--text-muted)'}></span>
-							<span class="event-type">{event.event_type.replace(/_/g, ' ')}</span>
-							<span class="event-severity">{event.severity}</span>
-							<time class="event-time">{formatTimestamp(event.begins)}</time>
-						</div>
-						<h3 class="event-title">{event.title}</h3>
-						{#if event.description}
-							<p class="event-desc">{event.description}</p>
-						{/if}
-						{#if event.gnss_impact_level}
-							<span class="gnss-badge" data-level={event.gnss_impact_level}>
-								GNSS: {event.gnss_impact_level}
-							</span>
-						{/if}
-					</article>
-				</a>
+			{#each groupedEvents as group (group.key)}
+				<h2 class="date-header">{group.header}</h2>
+				{#each group.events as event (event.id)}
+					<a href="/events/{event.id}" class="event-link">
+						<article class="event-card">
+							<div class="event-header">
+								<span class="severity-dot" style:background={severityColors[event.severity] ?? 'var(--text-muted)'}></span>
+								<span class="event-type">{event.event_type.replace(/_/g, ' ')}</span>
+								<span class="event-severity">{event.severity}</span>
+								<time class="event-time">{formatLocal(event.begins)}</time>
+							</div>
+							<h3 class="event-title">{event.title}</h3>
+							{#if event.description}
+								<p class="event-desc">{event.description}</p>
+							{/if}
+							{#if event.gnss_impact_level}
+								<span class="gnss-badge" data-level={event.gnss_impact_level}>
+									GNSS: {event.gnss_impact_level}
+								</span>
+							{/if}
+						</article>
+					</a>
+				{/each}
 			{/each}
 		{/if}
 	</section>
@@ -76,6 +113,18 @@
 		flex-direction: column;
 		gap: var(--space-md);
 		margin-top: var(--space-xl);
+	}
+
+	.date-header {
+		font-size: var(--font-size-base);
+		color: var(--text-secondary);
+		padding-bottom: var(--space-xs);
+		border-bottom: 1px solid var(--border-default);
+		margin-top: var(--space-md);
+	}
+
+	.date-header:first-child {
+		margin-top: 0;
 	}
 
 	.event-link {

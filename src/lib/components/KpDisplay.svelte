@@ -1,6 +1,7 @@
-<!-- KpDisplay.svelte v0.1.0 — Big Kp number + trend + status -->
+<!-- KpDisplay.svelte v0.2.0 — Big Kp number + trend + status -->
 <script lang="ts">
 	import type { KpSummary } from '$types/api';
+	import { formatLocal } from '$lib/utils/timeFormat';
 
 	interface Props {
 		summary: KpSummary | null;
@@ -42,7 +43,7 @@
 		<p class="kp-message">{summary.message}</p>
 		{#if summary.current_time}
 			<time class="kp-time" datetime={summary.current_time}>
-				{new Date(summary.current_time).toUTCString().slice(0, -4)} UTC
+				{formatLocal(summary.current_time)}
 			</time>
 		{/if}
 	{:else}

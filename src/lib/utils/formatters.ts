@@ -1,6 +1,6 @@
-// formatters.ts v0.1.0 — Date/number formatting utilities
+// formatters.ts v0.2.0 — Date/number formatting utilities
 
-/** Format ISO timestamp to short readable form: "Jan 15, 14:30 UTC" */
+/** @deprecated Use formatLocal/formatUTC/formatDual from timeFormat.ts instead */
 export function formatTimestamp(iso: string): string {
 	const d = new Date(iso);
 	if (isNaN(d.getTime())) return iso;

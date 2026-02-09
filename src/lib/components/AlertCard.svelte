@@ -1,7 +1,7 @@
-<!-- AlertCard.svelte v0.1.0 — Individual alert display card -->
+<!-- AlertCard.svelte v0.2.0 — Individual alert display card -->
 <script lang="ts">
 	import type { AlertItem } from '$types/api';
-	import { formatTimestamp } from '$lib/utils/formatters';
+	import { formatLocal } from '$lib/utils/timeFormat';
 
 	interface Props {
 		alert: AlertItem;
@@ -31,7 +31,7 @@
 				: alert.severity}
 		</span>
 		<span class="event-type">{alert.event_type.replace(/_/g, ' ')}</span>
-		<time class="alert-time">{formatTimestamp(alert.issue_time)}</time>
+		<time class="alert-time">{formatLocal(alert.issue_time)}</time>
 	</div>
 
 	<p class="alert-summary">{alert.summary}</p>
@@ -40,7 +40,7 @@
 		<pre class="alert-message">{alert.message}</pre>
 	{/if}
 
-	<button class="toggle-btn" onclick={() => showFull = !showFull}>
+	<button class="toggle-btn" onclick={() => showFull = !showFull} aria-label={showFull ? 'Collapse alert message' : 'Expand alert message'}>
 		{showFull ? 'Show less' : 'Show full message'}
 	</button>
 </article>

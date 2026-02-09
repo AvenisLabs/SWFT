@@ -1,4 +1,4 @@
-/* app.css v0.2.0 — Base styles + CSS reset for SWFT */
+/* app.css v0.3.0 — Base styles + CSS reset for SWFT */
 
 *,
 *::before,
@@ -15,8 +15,8 @@
 	--bg-card: #1c2128;
 	--border-default: #30363d;
 	--text-primary: #e6edf3;
-	--text-secondary: #8b949e;
-	--text-muted: #6e7681;
+	--text-secondary: #9eaab6;
+	--text-muted: #7d8590;
 	--accent-blue: #58a6ff;
 	--accent-green: #3fb950;
 	--accent-yellow: #d29922;
@@ -125,6 +125,30 @@ h1, h2, h3, h4 {
 .placeholder-grid .card h2 {
 	font-size: var(--font-size-lg);
 	margin-bottom: var(--space-sm);
+}
+
+/* Focus & selection styles for accessibility */
+:focus-visible {
+	outline: 2px solid var(--accent-blue);
+	outline-offset: 2px;
+}
+
+::selection {
+	background: var(--accent-blue);
+	color: #fff;
+}
+
+/* Screen-reader-only utility */
+.sr-only {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	white-space: nowrap;
+	border-width: 0;
 }
 
 /* Responsive adjustments */

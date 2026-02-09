@@ -1,8 +1,8 @@
-<!-- /events/[id] page v0.2.0 — Event detail page -->
+<!-- /events/[id] page v0.3.0 — Event detail page with dual time display -->
 <script lang="ts">
 	import Card from '$lib/components/Card.svelte';
 	import type { EventItem } from '$types/api';
-	import { formatTimestamp } from '$lib/utils/formatters';
+	import { formatDual } from '$lib/utils/timeFormat';
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
 
@@ -63,18 +63,18 @@
 				<dl class="detail-list">
 					<div class="detail-item">
 						<dt>Began</dt>
-						<dd>{formatTimestamp(event.begins)}</dd>
+						<dd>{formatDual(event.begins)}</dd>
 					</div>
 					{#if event.ends}
 						<div class="detail-item">
 							<dt>Ended</dt>
-							<dd>{formatTimestamp(event.ends)}</dd>
+							<dd>{formatDual(event.ends)}</dd>
 						</div>
 					{/if}
 					{#if event.peak_time}
 						<div class="detail-item">
 							<dt>Peak</dt>
-							<dd>{formatTimestamp(event.peak_time)}</dd>
+							<dd>{formatDual(event.peak_time)}</dd>
 						</div>
 					{/if}
 				</dl>

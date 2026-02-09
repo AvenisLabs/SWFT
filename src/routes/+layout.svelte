@@ -1,7 +1,10 @@
-<!-- +layout.svelte v0.2.0 — Root layout with navigation -->
+<!-- +layout.svelte v0.3.0 — Root layout with navigation -->
 <script>
 	import '../app.css';
+	import { formatBuildTime } from '$lib/utils/buildInfo';
 	let { children } = $props();
+
+	const buildTime = formatBuildTime();
 </script>
 
 <svelte:head>
@@ -25,8 +28,8 @@
 	</div>
 
 	<footer class="app-footer">
-		<p>Data sourced from <a href="https://www.swpc.noaa.gov" target="_blank" rel="noopener">NOAA Space Weather Prediction Center</a></p>
-		<p class="version">v0.1.0</p>
+		<p>&copy; 2026 SWFT SkyPixels &mdash; Last updated: {buildTime}</p>
+		<p class="attribution">Data sourced from <a href="https://www.swpc.noaa.gov" target="_blank" rel="noopener">NOAA Space Weather Prediction Center</a> &middot; v0.2.0</p>
 	</footer>
 </div>
 
@@ -92,9 +95,8 @@
 		color: var(--text-secondary);
 	}
 
-	.version {
+	.attribution {
 		margin-top: var(--space-xs);
-		font-family: var(--font-mono);
 	}
 
 	@media (max-width: 640px) {

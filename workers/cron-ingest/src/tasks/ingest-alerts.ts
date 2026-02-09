@@ -1,4 +1,4 @@
-// ingest-alerts.ts v0.2.0 — Alert ingestion with dedup + classification
+// ingest-alerts.ts v0.3.0 — Alert ingestion with improved classification
 
 import { fetchAlerts } from '../lib/noaa-client';
 import { insertAlert, insertClassifiedAlert, updateCronState } from '../lib/db';
@@ -37,7 +37,11 @@ function classifyAlert(message: string, productId: string): {
 
 	if (msgUpper.includes('GEOMAGNETIC') || msgUpper.includes('K-INDEX') || scale_type === 'G') {
 		event_type = 'geomagnetic_storm';
+	} else if (msgUpper.includes('MAGNETOMETER') || msgUpper.includes('SUDDEN IMPULSE') || msgUpper.includes('SSC')) {
+		event_type = 'geomagnetic_storm';
 	} else if (msgUpper.includes('SOLAR RADIATION') || msgUpper.includes('PROTON') || scale_type === 'S') {
+		event_type = 'solar_radiation';
+	} else if (msgUpper.includes('ELECTRON') || msgUpper.includes('2MEV') || msgUpper.includes('INTEGRAL FLUX') || msgUpper.includes('ENERGETIC')) {
 		event_type = 'solar_radiation';
 	} else if (msgUpper.includes('RADIO BLACKOUT') || msgUpper.includes('X-RAY') || scale_type === 'R') {
 		event_type = 'radio_blackout';
@@ -45,6 +49,8 @@ function classifyAlert(message: string, productId: string): {
 		event_type = 'solar_flare';
 	} else if (msgUpper.includes('CME') || msgUpper.includes('CORONAL MASS')) {
 		event_type = 'cme';
+	} else if (msgUpper.includes('HIGH SPEED SOLAR WIND') || msgUpper.includes('HSS')) {
+		event_type = 'solar_wind';
 	} else if (msgUpper.includes('WATCH')) {
 		event_type = 'watch';
 	} else if (msgUpper.includes('WARNING')) {
