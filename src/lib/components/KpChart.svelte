@@ -1,4 +1,4 @@
-<!-- KpChart.svelte v0.4.0 — Kp bar chart with local HH:MM time labels -->
+<!-- KpChart.svelte v0.5.0 — Kp bar chart with local HH:MM time labels -->
 <script lang="ts">
 	import type { KpDataPoint } from '$types/api';
 
@@ -13,8 +13,12 @@
 	const BAR_WIDTH = 40;
 	const GAP = 4;
 
-	// Reverse so oldest is on the left
-	let chartData = $derived(data.slice(0, MAX_BARS).reverse());
+	// Filter out future timestamps, then reverse so oldest is on the left
+	let chartData = $derived(
+		data.filter(p => new Date(p.ts).getTime() <= Date.now())
+			.slice(0, MAX_BARS)
+			.reverse()
+	);
 	let chartWidth = $derived(chartData.length * (BAR_WIDTH + GAP));
 
 	// Color based on Kp value
