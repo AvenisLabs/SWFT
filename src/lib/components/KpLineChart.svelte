@@ -1,4 +1,4 @@
-<!-- KpLineChart.svelte v0.1.0 — SVG line chart for 15-min estimated Kp with non-linear Y axis -->
+<!-- KpLineChart.svelte v0.2.0 — SVG line chart for 15-min estimated Kp with non-linear Y axis -->
 <script lang="ts">
 	import type { KpEstimatedPoint } from '$types/api';
 
@@ -188,6 +188,7 @@
 <style>
 	.kp-line-chart {
 		padding: var(--space-sm) 0;
+		min-height: 80px; /* Reserve space to prevent CLS when data is loading */
 	}
 
 	svg {

@@ -1,4 +1,4 @@
-<!-- KpDisplay.svelte v0.2.0 — Big Kp number + trend + status -->
+<!-- KpDisplay.svelte v0.3.0 — Big Kp number + trend + status -->
 <script lang="ts">
 	import type { KpSummary } from '$types/api';
 	import { formatLocal } from '$lib/utils/timeFormat';
@@ -55,6 +55,7 @@
 <style>
 	.kp-display {
 		text-align: center;
+		min-height: 140px; /* Reserve space to prevent CLS during loading→loaded */
 	}
 
 	.kp-value-row {

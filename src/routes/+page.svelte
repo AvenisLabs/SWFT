@@ -1,4 +1,4 @@
-<!-- +page.svelte v0.4.0 — Dashboard home with estimated Kp line chart, GNSS explainer, compact historical chart -->
+<!-- +page.svelte v0.5.0 — Dashboard home with SSR-prefetched data, CLS-free layout -->
 <script lang="ts">
 	import Card from '$lib/components/Card.svelte';
 	import HelpPopover from '$lib/components/HelpPopover.svelte';
@@ -21,9 +21,11 @@
 	let loadingGnss = $state(true);
 	let loadingAlerts = $state(true);
 
-	// Hydrate from SSR data via derived reactivity
+	// Hydrate all 4 data sources from SSR to eliminate CLS
 	let serverKp = $derived(data.kpSummary);
 	let serverKpEstimated = $derived(data.kpEstimated);
+	let serverGnssRisk = $derived(data.gnssRisk);
+	let serverAlerts = $derived(data.alerts);
 	$effect(() => {
 		if (serverKp && !kpSummary) {
 			kpSummary = serverKp;
@@ -33,6 +35,22 @@
 	$effect(() => {
 		if (serverKpEstimated && serverKpEstimated.length > 0 && kpEstimated.length === 0) {
 			kpEstimated = serverKpEstimated;
+		}
+	});
+	$effect(() => {
+		if (serverGnssRisk && !gnssRisk) {
+			gnssRisk = serverGnssRisk;
+			loadingGnss = false;
+		}
+	});
+	$effect(() => {
+		if (serverAlerts && serverAlerts.length > 0 && alerts.length === 0) {
+			alerts = serverAlerts;
+			loadingAlerts = false;
+		}
+		// Handle SSR returning empty alerts array (no active alerts)
+		if (serverAlerts && serverAlerts.length === 0 && loadingAlerts) {
+			loadingAlerts = false;
 		}
 	});
 
@@ -58,7 +76,7 @@
 		if (kp) { kpSummary = kp; loadingKp = false; }
 		if (estimated) { kpEstimated = estimated; }
 		if (risk) { gnssRisk = risk; loadingGnss = false; }
-		if (alertData) { alerts = alertData; loadingAlerts = false; }
+		if (alertData !== undefined) { alerts = alertData ?? []; loadingAlerts = false; }
 	}
 
 	// Severity badge colors for alert preview
@@ -158,27 +176,29 @@
 					text="Current space weather alerts issued by NOAA's Space Weather Prediction Center within the last 24 hours."
 				/>
 			{/snippet}
-			{#if loadingAlerts}
-				<p class="muted">Loading alerts&hellip;</p>
-			{:else if alerts.length === 0}
-				<p class="no-alerts">No active alerts</p>
-			{:else}
-				<ul class="alert-list">
-					{#each alerts.slice(0, 3) as alert, i}
-						{#if i > 0}
-							<li class="alert-separator" aria-hidden="true"></li>
-						{/if}
-						<li class="alert-item" data-severity={alert.severity}>
-							<span class="alert-badge" style:background={badgeColor(alert)}>{badgeText(alert)}</span>
-							<span class="alert-type">{alert.event_type.replace(/_/g, ' ')}</span>
-							<span class="alert-summary">{truncate(alert.summary, 60)}</span>
-						</li>
-					{/each}
-				</ul>
-				{#if alerts.length > 3}
-					<span class="view-all">View all {alerts.length} alerts &rarr;</span>
+			<div class="alerts-content">
+				{#if loadingAlerts}
+					<p class="muted">Loading alerts&hellip;</p>
+				{:else if alerts.length === 0}
+					<p class="no-alerts">No active alerts</p>
+				{:else}
+					<ul class="alert-list">
+						{#each alerts.slice(0, 3) as alert, i}
+							{#if i > 0}
+								<li class="alert-separator" aria-hidden="true"></li>
+							{/if}
+							<li class="alert-item" data-severity={alert.severity}>
+								<span class="alert-badge" style:background={badgeColor(alert)}>{badgeText(alert)}</span>
+								<span class="alert-type">{alert.event_type.replace(/_/g, ' ')}</span>
+								<span class="alert-summary">{truncate(alert.summary, 60)}</span>
+							</li>
+						{/each}
+					</ul>
+					{#if alerts.length > 3}
+						<span class="view-all">View all {alerts.length} alerts &rarr;</span>
+					{/if}
 				{/if}
-			{/if}
+			</div>
 		</Card>
 
 		<!-- Estimated Kp Line Chart (spans full width) -->
@@ -226,8 +246,10 @@
 		grid-column: 1 / -1;
 	}
 
+	/* Reserve space for card content to prevent CLS during loading→loaded transitions */
 	.placeholder-content {
 		text-align: center;
+		min-height: 140px;
 	}
 
 	.big-number {
@@ -299,6 +321,10 @@
 		color: var(--text-secondary);
 		font-size: var(--font-size-sm);
 		margin-top: var(--space-sm);
+	}
+
+	.alerts-content {
+		min-height: 100px; /* Reserve space to prevent CLS during loading→loaded */
 	}
 
 	.no-alerts {
