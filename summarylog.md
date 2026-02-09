@@ -153,3 +153,25 @@ Implemented near-real-time estimated Kp visualization with GNSS impact reference
 **Files created:** 5 | **Files modified:** 9
 **Tests:** 46/46 passing | **Build:** zero warnings
 **Deployed:** Cron worker + Pages app to Cloudflare
+
+---
+
+## 2026-02-09 18:10 — Fix CLS Layout Shift (PageSpeed Insights Performance)
+
+Eliminated Cumulative Layout Shift (CLS) sources identified via PageSpeed Insights:
+
+**SSR-prefetch all dashboard data (`+page.server.ts`):**
+- Added `computeGnssRisk(db)` and `getActiveAlerts(db)` to SSR `Promise.all`
+- Previously GNSS risk + alerts were client-only fetches causing HIGH-severity CLS
+- All 4 data sources (Kp summary, estimated Kp, GNSS risk, alerts) now SSR-hydrated
+
+**SSR hydration in `+page.svelte`:**
+- Added `$effect()` blocks for `serverGnssRisk` and `serverAlerts` hydration
+- Handles empty alerts array edge case (no active alerts = loading false, not stuck)
+
+**Min-height reservations to prevent loading→loaded height jumps:**
+- `KpDisplay.svelte`: `.kp-display` → `min-height: 140px`
+- `KpLineChart.svelte`: `.kp-line-chart` → `min-height: 80px`
+- `+page.svelte`: `.placeholder-content` → `min-height: 140px`, `.alerts-content` → `min-height: 100px`
+
+**Commit:** `0fbb2b8` | **Tests:** 46/46 | **Build:** zero warnings | **Deployed** to CF Pages
