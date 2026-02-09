@@ -1,4 +1,4 @@
-<!-- KpChart.svelte v0.2.0 — Kp bar chart using inline SVG (enlarged) -->
+<!-- KpChart.svelte v0.3.0 — Kp bar chart with local time labels -->
 <script lang="ts">
 	import type { KpDataPoint } from '$types/api';
 
@@ -9,7 +9,7 @@
 
 	// Chart renders last N data points as a simple bar chart
 	const MAX_BARS = 24;
-	const BAR_HEIGHT = 220;
+	const BAR_HEIGHT = 160;
 	const BAR_WIDTH = 40;
 	const GAP = 4;
 
@@ -32,7 +32,7 @@
 
 	function formatHour(ts: string): string {
 		const d = new Date(ts);
-		return `${d.getUTCHours().toString().padStart(2, '0')}`;
+		return `${d.getHours().toString().padStart(2, '0')}`;
 	}
 </script>
 
@@ -82,7 +82,7 @@
 				>{formatHour(point.ts)}</text>
 			{/each}
 		</svg>
-		<p class="chart-legend">UTC hours — dashed lines at Kp 4 (active) and Kp 5 (storm)</p>
+		<p class="chart-legend">Local hours — dashed lines at Kp 4 (active) and Kp 5 (storm)</p>
 	{/if}
 </div>
 
