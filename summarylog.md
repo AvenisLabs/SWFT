@@ -78,3 +78,15 @@ Implemented full UI/UX overhaul across 6 phases:
 
 **Files modified:** 15 (3 new, 12 modified)
 **Tests:** 46/46 passing | **Build:** successful, zero warnings
+
+---
+
+## 2026-02-09 17:16 — Cloudflare Deployment & Project Rename
+
+- Deployed cron worker `swft-cron-ingest` to Cloudflare (alert classifier fix live)
+- Deleted old `swpc-web` Pages project (custom domains removed first)
+- Confirmed old `swpc-cron-ingest` worker already deleted
+- Created new `swft-web` Pages project with `--production-branch master`
+- Deployed Pages app to `https://swft-web.pages.dev`
+- Updated `wrangler.toml` project name from `swpc-web` → `swft-web`
+- Custom domains (`swft.skypixels.org`, `swf.skypixels.org`) need manual re-add in CF dashboard
