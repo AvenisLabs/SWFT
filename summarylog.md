@@ -175,3 +175,20 @@ Eliminated Cumulative Layout Shift (CLS) sources identified via PageSpeed Insigh
 - `+page.svelte`: `.placeholder-content` → `min-height: 140px`, `.alerts-content` → `min-height: 100px`
 
 **Commit:** `0fbb2b8` | **Tests:** 46/46 | **Build:** zero warnings | **Deployed** to CF Pages
+
+---
+
+## 2026-02-09 18:53 — Eliminate Hydration CLS (PageSpeed 0.433 → 0)
+
+Root cause: `$state` initialized to empty defaults, then `$effect` restored SSR data asynchronously. During hydration there was a frame where `kpEstimated = []` showed loading text, then the `$effect` fired and replaced it with the full SVG chart — causing a 0.433 CLS score.
+
+**Fix — SSR-derived overlay pattern:**
+- `$derived` reads SSR data from `data` prop (renders on first paint, no empty frame)
+- `$state` overlays start as `undefined` (meaning "use SSR data")
+- Final values merged: `$derived(clientX !== undefined ? clientX : ssrX)`
+- `refreshData()` writes to client overlays, seamlessly replacing SSR data
+- Zero `$effect` blocks for hydration, zero `state_referenced_locally` warnings
+
+**Additional:** `KpLineChart` container gets `aspect-ratio: 600 / 200` instead of `min-height`, matching the SVG viewBox exactly.
+
+**Commit:** `494efb9` | **Tests:** 46/46 | **Build:** zero warnings | **Deployed** to CF Pages
