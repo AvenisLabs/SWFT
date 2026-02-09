@@ -1,4 +1,4 @@
-<!-- KpChart.svelte v0.5.0 — Kp bar chart with local HH:MM time labels -->
+<!-- KpChart.svelte v0.6.0 — Compact Kp bar chart with local HH:MM time labels -->
 <script lang="ts">
 	import type { KpDataPoint } from '$types/api';
 
@@ -7,11 +7,11 @@
 	}
 	let { data }: Props = $props();
 
-	// Chart renders last N data points as a simple bar chart
+	// Chart renders last N data points — shrunk 50% for compact display
 	const MAX_BARS = 24;
-	const BAR_HEIGHT = 160;
-	const BAR_WIDTH = 40;
-	const GAP = 4;
+	const BAR_HEIGHT = 80;
+	const BAR_WIDTH = 20;
+	const GAP = 2;
 
 	// Filter out future timestamps, then reverse so oldest is on the left
 	let chartData = $derived(
@@ -59,7 +59,7 @@
 		<p class="muted">No chart data available</p>
 	{:else}
 		<svg
-			viewBox="0 0 {chartWidth} {BAR_HEIGHT + 24}"
+			viewBox="0 0 {chartWidth} {BAR_HEIGHT + 16}"
 			width="100%"
 			role="img"
 			aria-label="Kp index bar chart"
@@ -84,24 +84,24 @@
 				<!-- Kp value label on bar -->
 				<text
 					x={x + BAR_WIDTH / 2}
-					y={BAR_HEIGHT - h - 4}
+					y={BAR_HEIGHT - h - 3}
 					text-anchor="middle"
 					fill="var(--text-secondary)"
-					font-size="12"
+					font-size="9"
 					font-family="var(--font-mono)"
 				>{point.kp.toFixed(1)}</text>
 				<!-- Hour:minute label below -->
 				<text
 					x={x + BAR_WIDTH / 2}
-					y={BAR_HEIGHT + 16}
+					y={BAR_HEIGHT + 12}
 					text-anchor="middle"
 					fill="var(--text-muted)"
-					font-size="11"
+					font-size="8"
 				>{formatHour(point.ts)}</text>
 			{/each}
 		</svg>
 		<p class="chart-date">{dateLabel}</p>
-		<p class="chart-legend">Local hours — dashed lines at Kp 4 (active) and Kp 5 (storm)</p>
+		<p class="chart-legend">Historical Kp — 3-hour intervals, dashed lines at Kp 4 (active) and Kp 5 (storm)</p>
 	{/if}
 </div>
 
@@ -109,7 +109,7 @@
 	.kp-chart {
 		overflow-x: auto;
 		padding: var(--space-sm) 0;
-		min-height: 200px;
+		min-height: 100px;
 	}
 
 	svg {

@@ -1,6 +1,7 @@
-// index.ts v0.2.0 — SWFT cron worker entry point, dispatches tasks by schedule
+// index.ts v0.3.0 — SWFT cron worker entry point, dispatches tasks by schedule
 
 import { ingestKp } from './tasks/ingest-kp';
+import { ingestKpEstimated } from './tasks/ingest-kp-estimated';
 import { ingestSolarWind } from './tasks/ingest-solarwind';
 import { ingestAlerts } from './tasks/ingest-alerts';
 import { generateSummaries } from './tasks/generate-summaries';
@@ -18,6 +19,7 @@ export default {
 			ctx.waitUntil(
 				Promise.allSettled([
 					ingestKp(env.DB).then(r => console.log(`[ingest-kp] inserted ${r.inserted} rows`)),
+					ingestKpEstimated(env.DB).then(r => console.log(`[ingest-kp-estimated] inserted ${r.inserted} rows`)),
 					ingestSolarWind(env.DB).then(r => console.log(`[ingest-solarwind] inserted ${r.inserted} rows`)),
 				]).then(results => {
 					for (const r of results) {

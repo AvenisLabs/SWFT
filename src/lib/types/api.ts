@@ -1,4 +1,4 @@
-// api.ts v0.1.0 — API response contracts for /api/v1/* endpoints
+// api.ts v0.2.0 — API response contracts for /api/v1/* endpoints
 
 /** Standard envelope wrapping all API responses */
 export interface ApiResponse<T> {
@@ -25,6 +25,13 @@ export interface KpSummary {
 	status_label: string;
 	message: string;
 	recent: KpDataPoint[];
+}
+
+/** GET /api/v1/kp/estimated */
+export interface KpEstimatedPoint {
+	ts: string;
+	kp: number;
+	sample_count: number;
 }
 
 /** GET /api/v1/alerts/active and /api/v1/alerts/recent */

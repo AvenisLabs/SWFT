@@ -90,3 +90,66 @@ Implemented full UI/UX overhaul across 6 phases:
 - Deployed Pages app to `https://swft-web.pages.dev`
 - Updated `wrangler.toml` project name from `swpc-web` → `swft-web`
 - Custom domains (`swft.skypixels.org`, `swf.skypixels.org`) need manual re-add in CF dashboard
+
+---
+
+## 2026-02-09 17:35 — Kp Chart & Font Refinements + Help Popover Fix
+
+**Kp Chart tweaks:**
+- Reduced BAR_HEIGHT from 220 → 160 (less tall)
+- Switched from UTC to local time display (`getHours()`)
+- Changed time labels to HH:MM format (e.g. "15:45")
+- Added date range label above the legend line (e.g. "Feb 9, 2026" or "Feb 8, 2026 – Feb 9, 2026")
+
+**Font brightness overhaul:**
+- `--text-primary`: `#f0f6fc` (bright white)
+- `--text-secondary`: `#c9d1d9` (light gray)
+- `--text-muted`: `#9eaab6` (medium gray)
+
+**Help popover fix:**
+- Converted from click-based to pure CSS hover tooltip
+- Eliminates conflict where clicking `?` icon triggered the parent card link
+- Uses `<abbr>` element with CSS `:hover` — no JS event handlers needed
+- Zero a11y build warnings
+
+**Commits:** `481d90f`, `8afa318` | **Build:** zero warnings | **Deployed** to CF Pages
+
+---
+
+## 2026-02-09 17:56 — Estimated Kp Line Chart + GNSS Explainer + Compact Historical Chart
+
+Implemented near-real-time estimated Kp visualization with GNSS impact reference:
+
+**New D1 table + migration (`0003_kp_estimated.sql`):**
+- `kp_estimated` table: 15-minute downsampled buckets from 1-min NOAA data
+- Applied locally and remotely
+
+**Cron worker changes:**
+- `noaa-client.ts`: Added `fetchEstimatedKp()` — fetches `/json/planetary_k_index_1m.json`, groups by 15-min floor, averages
+- `db.ts`: Added `upsertKpEstimated()` with INSERT OR REPLACE (re-fetches update averages)
+- New `ingest-kp-estimated.ts` task — fetch, upsert, cleanup rows >12h old
+- Wired into `*/3` schedule alongside existing Kp + solar wind ingestion
+
+**SvelteKit API + types:**
+- `KpEstimatedPoint` type added to `api.ts`
+- `getEstimatedKp()` server helper in `kp.ts`
+- New `/api/v1/kp/estimated` endpoint with `?hours=` param (1–12, default 3)
+- `CACHE_TTL.KP_ESTIMATED: 120` and `NOAA_ENDPOINTS.KP_ESTIMATED_1M` constants
+- SSR loading in `+page.server.ts` via parallel `Promise.all`
+
+**New components:**
+- `KpLineChart.svelte`: SVG line chart with non-linear Y axis (60% for Kp 0–4, 30% for 4–7, 10% for 7–9), color-coded zone bands, dashed threshold lines, 30-min x-axis ticks, data point dots
+- `KpGnssExplainer.svelte`: 3-column CSS grid (Normal/Storm/Severe) with per-Kp-level GNSS impact descriptions, active row highlighting based on current estimated Kp, mobile-responsive collapse
+
+**Existing component changes:**
+- `KpChart.svelte` shrunk 50%: BAR_HEIGHT 160→80, BAR_WIDTH 40→20, GAP 4→2, font sizes reduced, min-height 200→100px, updated legend text
+
+**Homepage layout (`+page.svelte`):**
+1. Estimated Kp line chart with help popover
+2. GNSS effects explainer (inside same card)
+3. Compact historical bar chart
+- Client-side `/api/v1/kp/estimated` fetch in refreshData() cycle
+
+**Files created:** 5 | **Files modified:** 9
+**Tests:** 46/46 passing | **Build:** zero warnings
+**Deployed:** Cron worker + Pages app to Cloudflare

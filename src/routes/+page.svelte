@@ -1,10 +1,12 @@
-<!-- +page.svelte v0.3.0 — Dashboard home with clickable cards, help, risk bar -->
+<!-- +page.svelte v0.4.0 — Dashboard home with estimated Kp line chart, GNSS explainer, compact historical chart -->
 <script lang="ts">
 	import Card from '$lib/components/Card.svelte';
 	import HelpPopover from '$lib/components/HelpPopover.svelte';
 	import KpDisplay from '$lib/components/KpDisplay.svelte';
 	import KpChart from '$lib/components/KpChart.svelte';
-	import type { KpSummary, GnssRiskResult, AlertItem } from '$types/api';
+	import KpLineChart from '$lib/components/KpLineChart.svelte';
+	import KpGnssExplainer from '$lib/components/KpGnssExplainer.svelte';
+	import type { KpSummary, KpEstimatedPoint, GnssRiskResult, AlertItem } from '$types/api';
 	import { fetchApi } from '$lib/stores/dashboard';
 	import { onMount } from 'svelte';
 
@@ -12,6 +14,7 @@
 
 	// Server-loaded initial data, updated via client-side refresh
 	let kpSummary = $state<KpSummary | null>(null);
+	let kpEstimated = $state<KpEstimatedPoint[]>([]);
 	let gnssRisk = $state<GnssRiskResult | null>(null);
 	let alerts = $state<AlertItem[]>([]);
 	let loadingKp = $state(true);
@@ -20,12 +23,23 @@
 
 	// Hydrate from SSR data via derived reactivity
 	let serverKp = $derived(data.kpSummary);
+	let serverKpEstimated = $derived(data.kpEstimated);
 	$effect(() => {
 		if (serverKp && !kpSummary) {
 			kpSummary = serverKp;
 			loadingKp = false;
 		}
 	});
+	$effect(() => {
+		if (serverKpEstimated && serverKpEstimated.length > 0 && kpEstimated.length === 0) {
+			kpEstimated = serverKpEstimated;
+		}
+	});
+
+	// Current Kp from the latest estimated data point (for GNSS explainer highlighting)
+	let currentEstimatedKp = $derived(
+		kpEstimated.length > 0 ? kpEstimated[kpEstimated.length - 1].kp : undefined
+	);
 
 	onMount(() => {
 		refreshData();
@@ -34,13 +48,15 @@
 	});
 
 	async function refreshData() {
-		const [kp, risk, alertData] = await Promise.all([
+		const [kp, estimated, risk, alertData] = await Promise.all([
 			fetchApi<KpSummary>('/api/v1/kp/summary'),
+			fetchApi<KpEstimatedPoint[]>('/api/v1/kp/estimated'),
 			fetchApi<GnssRiskResult>('/api/v1/gnss/risk'),
 			fetchApi<AlertItem[]>('/api/v1/alerts/active'),
 		]);
 
 		if (kp) { kpSummary = kp; loadingKp = false; }
+		if (estimated) { kpEstimated = estimated; }
 		if (risk) { gnssRisk = risk; loadingGnss = false; }
 		if (alertData) { alerts = alertData; loadingAlerts = false; }
 	}
@@ -165,8 +181,26 @@
 			{/if}
 		</Card>
 
-		<!-- Kp Chart Card (spans full width) -->
-		<Card title="Kp Index — Last 24 Hours">
+		<!-- Estimated Kp Line Chart (spans full width) -->
+		<Card title="Current Estimated Kp — 15-Minute Intervals (Last 3 Hours)">
+			{#snippet headerExtra()}
+				<HelpPopover
+					id="help-kp-estimated"
+					text="Near-real-time estimated Kp derived from 1-minute NOAA data, averaged into 15-minute buckets. Y-axis uses non-linear scaling to emphasize storm-level values."
+				/>
+			{/snippet}
+			{#if kpEstimated.length > 0}
+				<KpLineChart data={kpEstimated} />
+			{:else}
+				<p class="muted">Estimated Kp data loading&hellip;</p>
+			{/if}
+
+			<!-- GNSS Effects Explainer -->
+			<KpGnssExplainer activeKp={currentEstimatedKp} />
+		</Card>
+
+		<!-- Historical Kp Bar Chart (spans full width, compact) -->
+		<Card title="Historical Kp — 3-Hour Intervals">
 			{#if kpSummary?.recent}
 				<KpChart data={kpSummary.recent} />
 			{:else}
@@ -187,8 +221,8 @@
 		gap: var(--space-lg);
 	}
 
-	/* Make chart card span full width */
-	.dashboard-grid > :global(:last-child) {
+	/* Make the chart cards (last two) span full width */
+	.dashboard-grid > :global(:nth-child(n+4)) {
 		grid-column: 1 / -1;
 	}
 

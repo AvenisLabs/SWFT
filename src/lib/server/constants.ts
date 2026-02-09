@@ -1,4 +1,4 @@
-// constants.ts v0.2.0 — NOAA data source URLs, panel definitions, thresholds
+// constants.ts v0.3.0 — NOAA data source URLs, panel definitions, thresholds
 
 /** Base URL for all NOAA JSON product endpoints */
 export const NOAA_BASE = 'https://services.swpc.noaa.gov';
@@ -12,6 +12,7 @@ export const NOAA_ENDPOINTS = {
 	MAG_7DAY: '/products/solar-wind/mag-7-day.json',
 	NOAA_SCALES: '/products/noaa-scales.json',
 	WIND_SPEED_SUMMARY: '/products/summary/solar-wind-speed.json',
+	KP_ESTIMATED_1M: '/json/planetary_k_index_1m.json',
 } as const;
 
 /** Full URLs for convenience */
@@ -90,6 +91,7 @@ export const CACHE_TTL = {
 	ANIMATION_MANIFEST: 120,
 	FRAME_IMAGE: 900,
 	CHART_PNG: 900,
+	KP_ESTIMATED: 120,
 	STATUS: 30,
 	NEWS: 300,
 	EVENTS: 180,

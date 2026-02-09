@@ -1,8 +1,8 @@
-// kp.ts v0.1.0 — Kp queries + summary logic
+// kp.ts v0.2.0 — Kp queries + summary logic
 
 import type { D1Database } from '@cloudflare/workers-types';
 import { queryAll, queryFirst } from './db';
-import type { KpDataPoint, KpSummary } from '$types/api';
+import type { KpDataPoint, KpSummary, KpEstimatedPoint } from '$types/api';
 import { KP_THRESHOLDS } from './constants';
 
 /** Fetch recent Kp observations (default: last 48h) */
@@ -12,6 +12,17 @@ export async function getRecentKp(db: D1Database, hours = 48): Promise<KpDataPoi
 		`SELECT ts, kp_value as kp, source FROM kp_obs
 		 WHERE ts > datetime('now', ? || ' hours')
 		 ORDER BY ts DESC`,
+		[`-${hours}`]
+	);
+}
+
+/** Fetch 15-min estimated Kp data for the given number of hours */
+export async function getEstimatedKp(db: D1Database, hours = 3): Promise<KpEstimatedPoint[]> {
+	return queryAll<KpEstimatedPoint>(
+		db,
+		`SELECT ts, kp_value as kp, sample_count FROM kp_estimated
+		 WHERE ts > datetime('now', ? || ' hours')
+		 ORDER BY ts ASC`,
 		[`-${hours}`]
 	);
 }

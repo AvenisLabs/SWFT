@@ -1,4 +1,4 @@
-// noaa-client.ts v0.2.0 — NOAA fetch + parse helpers for cron ingestion
+// noaa-client.ts v0.3.0 — NOAA fetch + parse helpers for cron ingestion
 
 const NOAA_BASE = 'https://services.swpc.noaa.gov';
 
@@ -113,6 +113,65 @@ export async function fetchAlerts(): Promise<ParsedAlert[]> {
 		issue_time: a.issue_datetime,
 		message: a.message,
 	}));
+}
+
+// -- Estimated Kp (1-minute) --
+
+/** Raw shape from /json/planetary_k_index_1m.json */
+interface NoaaEstimatedKp1m {
+	time_tag: string;
+	estimated_kp: number;
+	kp: number;
+}
+
+/** 15-minute downsampled estimated Kp bucket */
+export interface ParsedEstimatedKp {
+	ts: string;       // ISO 8601 bucket start (UTC)
+	kp_value: number; // averaged estimated_kp
+	sample_count: number;
+}
+
+/** Floor a Date to its 15-minute bucket start */
+function floorTo15Min(date: Date): string {
+	const d = new Date(date);
+	d.setUTCMinutes(Math.floor(d.getUTCMinutes() / 15) * 15, 0, 0);
+	return d.toISOString().replace('.000Z', 'Z');
+}
+
+/** Fetch 1-minute estimated Kp and downsample to 15-min averages */
+export async function fetchEstimatedKp(): Promise<ParsedEstimatedKp[]> {
+	const raw = await fetchNoaa<NoaaEstimatedKp1m[]>('/json/planetary_k_index_1m.json');
+
+	// Group by 15-min bucket
+	const buckets = new Map<string, number[]>();
+
+	for (const entry of raw) {
+		const ts = new Date(entry.time_tag);
+		if (isNaN(ts.getTime())) continue;
+
+		const kp = typeof entry.estimated_kp === 'string'
+			? parseFloat(entry.estimated_kp)
+			: entry.estimated_kp;
+		if (isNaN(kp)) continue;
+
+		const bucket = floorTo15Min(ts);
+		const arr = buckets.get(bucket);
+		if (arr) arr.push(kp);
+		else buckets.set(bucket, [kp]);
+	}
+
+	// Average each bucket
+	const results: ParsedEstimatedKp[] = [];
+	for (const [ts, values] of buckets) {
+		const avg = values.reduce((a, b) => a + b, 0) / values.length;
+		results.push({
+			ts,
+			kp_value: Math.round(avg * 100) / 100,
+			sample_count: values.length,
+		});
+	}
+
+	return results.sort((a, b) => a.ts.localeCompare(b.ts));
 }
 
 // -- NOAA Scales --
