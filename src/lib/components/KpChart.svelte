@@ -1,4 +1,4 @@
-<!-- KpChart.svelte v0.3.0 — Kp bar chart with local time labels -->
+<!-- KpChart.svelte v0.4.0 — Kp bar chart with local HH:MM time labels -->
 <script lang="ts">
 	import type { KpDataPoint } from '$types/api';
 
@@ -30,10 +30,24 @@
 		return (kp / 9) * BAR_HEIGHT;
 	}
 
+	// Format as HH:MM in local time
 	function formatHour(ts: string): string {
 		const d = new Date(ts);
-		return `${d.getHours().toString().padStart(2, '0')}`;
+		const h = d.getHours().toString().padStart(2, '0');
+		const m = d.getMinutes().toString().padStart(2, '0');
+		return `${h}:${m}`;
 	}
+
+	// Date range string for chart header
+	let dateLabel = $derived.by(() => {
+		if (chartData.length === 0) return '';
+		const first = new Date(chartData[0].ts);
+		const last = new Date(chartData[chartData.length - 1].ts);
+		const fmt = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+		const firstStr = fmt.format(first);
+		const lastStr = fmt.format(last);
+		return firstStr === lastStr ? firstStr : `${firstStr} – ${lastStr}`;
+	});
 </script>
 
 <div class="kp-chart">
@@ -72,7 +86,7 @@
 					font-size="12"
 					font-family="var(--font-mono)"
 				>{point.kp.toFixed(1)}</text>
-				<!-- Hour label below -->
+				<!-- Hour:minute label below -->
 				<text
 					x={x + BAR_WIDTH / 2}
 					y={BAR_HEIGHT + 16}
@@ -82,6 +96,7 @@
 				>{formatHour(point.ts)}</text>
 			{/each}
 		</svg>
+		<p class="chart-date">{dateLabel}</p>
 		<p class="chart-legend">Local hours — dashed lines at Kp 4 (active) and Kp 5 (storm)</p>
 	{/if}
 </div>
@@ -97,9 +112,15 @@
 		display: block;
 	}
 
+	.chart-date {
+		color: var(--text-muted);
+		font-size: 11px;
+		margin-top: var(--space-xs);
+	}
+
 	.chart-legend {
 		color: var(--text-muted);
 		font-size: 0.7rem;
-		margin-top: var(--space-xs);
+		margin-top: 2px;
 	}
 </style>

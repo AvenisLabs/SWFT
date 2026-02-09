@@ -1,4 +1,4 @@
-/* app.css v0.3.0 — Base styles + CSS reset for SWFT */
+/* app.css v0.4.0 — Base styles + CSS reset for SWFT */
 
 *,
 *::before,
@@ -14,9 +14,9 @@
 	--bg-secondary: #161b22;
 	--bg-card: #1c2128;
 	--border-default: #30363d;
-	--text-primary: #e6edf3;
-	--text-secondary: #9eaab6;
-	--text-muted: #7d8590;
+	--text-primary: #f0f6fc;
+	--text-secondary: #c9d1d9;
+	--text-muted: #9eaab6;
 	--accent-blue: #58a6ff;
 	--accent-green: #3fb950;
 	--accent-yellow: #d29922;
