@@ -188,7 +188,8 @@
 <style>
 	.kp-line-chart {
 		padding: var(--space-sm) 0;
-		min-height: 80px; /* Reserve space to prevent CLS when data is loading */
+		/* Reserve exact aspect ratio to prevent CLS — matches viewBox 600x200 */
+		aspect-ratio: 600 / 200;
 	}
 
 	svg {

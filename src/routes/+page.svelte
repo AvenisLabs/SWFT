@@ -1,4 +1,4 @@
-<!-- +page.svelte v0.5.0 — Dashboard home with SSR-prefetched data, CLS-free layout -->
+<!-- +page.svelte v0.6.0 — Dashboard home with SSR-prefetched data, CLS-free layout -->
 <script lang="ts">
 	import Card from '$lib/components/Card.svelte';
 	import HelpPopover from '$lib/components/HelpPopover.svelte';
@@ -12,47 +12,29 @@
 
 	let { data } = $props();
 
-	// Server-loaded initial data, updated via client-side refresh
-	let kpSummary = $state<KpSummary | null>(null);
-	let kpEstimated = $state<KpEstimatedPoint[]>([]);
-	let gnssRisk = $state<GnssRiskResult | null>(null);
-	let alerts = $state<AlertItem[]>([]);
-	let loadingKp = $state(true);
-	let loadingGnss = $state(true);
-	let loadingAlerts = $state(true);
+	// SSR data via $derived (reactive to prop) — client overlay via $state.
+	// $derived renders SSR content on first paint (no CLS), client state takes over after refresh.
+	let ssrKp = $derived(data.kpSummary ?? null);
+	let ssrEstimated = $derived(data.kpEstimated ?? []);
+	let ssrRisk = $derived(data.gnssRisk ?? null);
+	let ssrAlerts = $derived(data.alerts);
 
-	// Hydrate all 4 data sources from SSR to eliminate CLS
-	let serverKp = $derived(data.kpSummary);
-	let serverKpEstimated = $derived(data.kpEstimated);
-	let serverGnssRisk = $derived(data.gnssRisk);
-	let serverAlerts = $derived(data.alerts);
-	$effect(() => {
-		if (serverKp && !kpSummary) {
-			kpSummary = serverKp;
-			loadingKp = false;
-		}
-	});
-	$effect(() => {
-		if (serverKpEstimated && serverKpEstimated.length > 0 && kpEstimated.length === 0) {
-			kpEstimated = serverKpEstimated;
-		}
-	});
-	$effect(() => {
-		if (serverGnssRisk && !gnssRisk) {
-			gnssRisk = serverGnssRisk;
-			loadingGnss = false;
-		}
-	});
-	$effect(() => {
-		if (serverAlerts && serverAlerts.length > 0 && alerts.length === 0) {
-			alerts = serverAlerts;
-			loadingAlerts = false;
-		}
-		// Handle SSR returning empty alerts array (no active alerts)
-		if (serverAlerts && serverAlerts.length === 0 && loadingAlerts) {
-			loadingAlerts = false;
-		}
-	});
+	// Client-side overlays — undefined means "use SSR data"
+	let clientKp = $state<KpSummary | null | undefined>(undefined);
+	let clientEstimated = $state<KpEstimatedPoint[] | undefined>(undefined);
+	let clientRisk = $state<GnssRiskResult | null | undefined>(undefined);
+	let clientAlerts = $state<AlertItem[] | undefined>(undefined);
+
+	// Merged values: client data takes priority over SSR data
+	let kpSummary = $derived(clientKp !== undefined ? clientKp : ssrKp);
+	let kpEstimated = $derived(clientEstimated !== undefined ? clientEstimated : ssrEstimated);
+	let gnssRisk = $derived(clientRisk !== undefined ? clientRisk : ssrRisk);
+	let alerts = $derived(clientAlerts !== undefined ? clientAlerts : (ssrAlerts ?? []));
+
+	// Loading = no SSR data AND no client data yet
+	let loadingKp = $derived(kpSummary === null);
+	let loadingGnss = $derived(gnssRisk === null);
+	let loadingAlerts = $derived(ssrAlerts === undefined && clientAlerts === undefined);
 
 	// Current Kp from the latest estimated data point (for GNSS explainer highlighting)
 	let currentEstimatedKp = $derived(
@@ -73,10 +55,10 @@
 			fetchApi<AlertItem[]>('/api/v1/alerts/active'),
 		]);
 
-		if (kp) { kpSummary = kp; loadingKp = false; }
-		if (estimated) { kpEstimated = estimated; }
-		if (risk) { gnssRisk = risk; loadingGnss = false; }
-		if (alertData !== undefined) { alerts = alertData ?? []; loadingAlerts = false; }
+		if (kp) clientKp = kp;
+		if (estimated) clientEstimated = estimated;
+		if (risk) clientRisk = risk;
+		if (alertData !== undefined) clientAlerts = alertData ?? [];
 	}
 
 	// Severity badge colors for alert preview
