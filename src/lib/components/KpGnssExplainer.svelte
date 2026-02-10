@@ -1,4 +1,4 @@
-<!-- KpGnssExplainer.svelte v0.1.0 — 3-column GNSS effects table organized by Kp range -->
+<!-- KpGnssExplainer.svelte v0.2.0 — 3-column GNSS effects table organized by Kp range -->
 <script lang="ts">
 	interface Props {
 		activeKp?: number;
@@ -35,7 +35,7 @@
 
 <div class="gnss-explainer">
 	<div class="explainer-col normal">
-		<h4 class="col-header normal-header">Kp 1–4 <span class="col-tag">Normal</span></h4>
+		<h3 class="col-header normal-header">Kp 1–4 <span class="col-tag">Normal</span></h3>
 		{#each normalRows as row}
 			<div class="kp-row" class:active={activeRow === row.kp}>
 				<span class="kp-badge normal-badge">Kp {row.kp}{row.gScale ? ` (${row.gScale})` : ''}</span>
@@ -45,7 +45,7 @@
 	</div>
 
 	<div class="explainer-col storm">
-		<h4 class="col-header storm-header">Kp 5–7 <span class="col-tag">Storm</span></h4>
+		<h3 class="col-header storm-header">Kp 5–7 <span class="col-tag">Storm</span></h3>
 		{#each stormRows as row}
 			<div class="kp-row" class:active={activeRow === row.kp}>
 				<span class="kp-badge storm-badge">Kp {row.kp} ({row.gScale})</span>
@@ -55,7 +55,7 @@
 	</div>
 
 	<div class="explainer-col severe">
-		<h4 class="col-header severe-header">Kp 8–9 <span class="col-tag">Severe</span></h4>
+		<h3 class="col-header severe-header">Kp 8–9 <span class="col-tag">Severe</span></h3>
 		{#each severeRows as row}
 			<div class="kp-row" class:active={activeRow === row.kp}>
 				<span class="kp-badge severe-badge">Kp {row.kp} ({row.gScale})</span>
@@ -90,7 +90,6 @@
 	.col-tag {
 		font-weight: 400;
 		font-size: 0.7rem;
-		opacity: 0.8;
 	}
 
 	.normal-header {

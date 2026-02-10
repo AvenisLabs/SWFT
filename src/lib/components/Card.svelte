@@ -1,4 +1,4 @@
-<!-- Card.svelte v0.2.0 — Reusable card container with optional header extras -->
+<!-- Card.svelte v0.3.0 — Reusable card container with optional header extras -->
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 
@@ -17,7 +17,7 @@
 		<div class="card-wrapper">
 			{#if title}
 				<div class="card-header">
-					<h3 class="card-title">{title}</h3>
+					<h2 class="card-title">{title}</h2>
 					{#if headerExtra}{@render headerExtra()}{/if}
 				</div>
 			{/if}
@@ -30,7 +30,7 @@
 	<div class="card-wrapper" class:compact={variant === 'compact'}>
 		{#if title}
 			<div class="card-header">
-				<h3 class="card-title">{title}</h3>
+				<h2 class="card-title">{title}</h2>
 				{#if headerExtra}{@render headerExtra()}{/if}
 			</div>
 		{/if}

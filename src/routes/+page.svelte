@@ -341,7 +341,7 @@
 		text-transform: uppercase;
 		font-weight: 700;
 		white-space: nowrap;
-		color: #fff;
+		color: #0d1117; /* Dark text on colored backgrounds for WCAG AA contrast */
 	}
 
 	.alert-type {

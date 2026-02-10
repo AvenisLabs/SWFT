@@ -192,3 +192,21 @@ Root cause: `$state` initialized to empty defaults, then `$effect` restored SSR 
 **Additional:** `KpLineChart` container gets `aspect-ratio: 600 / 200` instead of `min-height`, matching the SVG viewBox exactly.
 
 **Commit:** `494efb9` | **Tests:** 46/46 | **Build:** zero warnings | **Deployed** to CF Pages
+
+---
+
+## 2026-02-09 19:04 — Fix Accessibility Issues (PageSpeed Insights)
+
+Addressed heading hierarchy and color contrast failures flagged by PageSpeed Insights:
+
+**Heading hierarchy fix:**
+- `Card.svelte` v0.3.0: Changed card titles from `<h3>` → `<h2>` (page has `<h1>`, was skipping to `<h3>`)
+- `KpGnssExplainer.svelte` v0.2.0: Changed column headers from `<h4>` → `<h3>` for proper hierarchy
+
+**Color contrast fixes (WCAG AA):**
+- `+page.svelte`: Alert badge text `#fff` → `#0d1117` (dark text on colored severity backgrounds for ~7:1 contrast)
+- `KpGnssExplainer.svelte`: Removed `opacity: 0.8` from `.col-tag` that was reducing effective contrast
+- `KpLineChart.svelte` v0.2.0: SVG axis labels `--text-muted` → `--text-secondary` for better small-text contrast; legend font 0.7→0.75rem
+- `KpChart.svelte` v0.7.0: SVG time labels `--text-muted` → `--text-secondary`; chart-date and chart-legend colors `--text-muted` → `--text-secondary`, font 0.7→0.75rem
+
+**Files modified:** 5 | **Tests:** 46/46 | **Build:** zero warnings | **Deployed** to CF Pages

@@ -1,4 +1,4 @@
-<!-- KpChart.svelte v0.6.0 — Compact Kp bar chart with local HH:MM time labels -->
+<!-- KpChart.svelte v0.7.0 — Compact Kp bar chart with local HH:MM time labels -->
 <script lang="ts">
 	import type { KpDataPoint } from '$types/api';
 
@@ -95,7 +95,7 @@
 					x={x + BAR_WIDTH / 2}
 					y={BAR_HEIGHT + 12}
 					text-anchor="middle"
-					fill="var(--text-muted)"
+					fill="var(--text-secondary)"
 					font-size="8"
 				>{formatHour(point.ts)}</text>
 			{/each}
@@ -117,14 +117,14 @@
 	}
 
 	.chart-date {
-		color: var(--text-muted);
+		color: var(--text-secondary);
 		font-size: 11px;
 		margin-top: var(--space-xs);
 	}
 
 	.chart-legend {
-		color: var(--text-muted);
-		font-size: 0.7rem;
+		color: var(--text-secondary);
+		font-size: 0.75rem;
 		margin-top: 2px;
 	}
 </style>

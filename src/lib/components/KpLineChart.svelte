@@ -134,7 +134,7 @@
 						x="-8"
 						y={kpToY(kp) + 4}
 						text-anchor="end"
-						fill="var(--text-muted)"
+						fill="var(--text-secondary)"
 						font-size="10"
 						font-family="var(--font-mono)"
 					>{kp}</text>
@@ -146,7 +146,7 @@
 						x={tick.x}
 						y={PLOT_H + 18}
 						text-anchor="middle"
-						fill="var(--text-muted)"
+						fill="var(--text-secondary)"
 						font-size="10"
 					>{tick.label}</text>
 				{/each}
@@ -197,8 +197,8 @@
 	}
 
 	.chart-legend {
-		color: var(--text-muted);
-		font-size: 0.7rem;
+		color: var(--text-secondary);
+		font-size: 0.75rem;
 		margin-top: 2px;
 	}
 </style>
