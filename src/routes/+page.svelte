@@ -1,9 +1,8 @@
-<!-- +page.svelte v0.6.0 — Dashboard home with SSR-prefetched data, CLS-free layout -->
+<!-- +page.svelte v0.7.0 — Dashboard home with SSR-prefetched data, CLS-free layout -->
 <script lang="ts">
 	import Card from '$lib/components/Card.svelte';
 	import HelpPopover from '$lib/components/HelpPopover.svelte';
 	import KpDisplay from '$lib/components/KpDisplay.svelte';
-	import KpChart from '$lib/components/KpChart.svelte';
 	import KpLineChart from '$lib/components/KpLineChart.svelte';
 	import KpGnssExplainer from '$lib/components/KpGnssExplainer.svelte';
 	import type { KpSummary, KpEstimatedPoint, GnssRiskResult, AlertItem } from '$types/api';
@@ -201,14 +200,6 @@
 			<KpGnssExplainer activeKp={currentEstimatedKp} />
 		</Card>
 
-		<!-- Historical Kp Bar Chart (spans full width, compact) -->
-		<Card title="Historical Kp — 3-Hour Intervals">
-			{#if kpSummary?.recent}
-				<KpChart data={kpSummary.recent} />
-			{:else}
-				<p class="muted">Chart data loading&hellip;</p>
-			{/if}
-		</Card>
 	</section>
 </main>
 

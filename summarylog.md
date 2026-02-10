@@ -210,3 +210,14 @@ Addressed heading hierarchy and color contrast failures flagged by PageSpeed Ins
 - `KpChart.svelte` v0.7.0: SVG time labels `--text-muted` → `--text-secondary`; chart-date and chart-legend colors `--text-muted` → `--text-secondary`, font 0.7→0.75rem
 
 **Files modified:** 5 | **Tests:** 46/46 | **Build:** zero warnings | **Deployed** to CF Pages
+
+---
+
+## 2026-02-09 19:17 — Move Historical Kp Chart to GNSS Page
+
+Moved the "Historical Kp — 3-Hour Intervals" bar chart from the homepage to the GNSS risk assessment page:
+
+- `+page.svelte` v0.7.0: Removed KpChart import and historical chart Card
+- `gnss/+page.svelte` v0.4.0: Added KpChart import, KpSummary client-side fetch (parallel with risk), new "Historical Kp" section between Operator Guidance and Methodology
+
+**Files modified:** 2 | **Tests:** 46/46 | **Build:** zero warnings | **Deployed** to CF Pages

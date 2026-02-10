@@ -1,20 +1,26 @@
-<!-- /gnss page v0.3.0 — GNSS risk assessment with 5 organized sections -->
+<!-- /gnss page v0.4.0 — GNSS risk assessment with historical Kp chart -->
 <script lang="ts">
 	import GnssRiskMeter from '$lib/components/GnssRiskMeter.svelte';
 	import HelpPopover from '$lib/components/HelpPopover.svelte';
 	import Card from '$lib/components/Card.svelte';
-	import type { GnssRiskResult } from '$types/api';
+	import KpChart from '$lib/components/KpChart.svelte';
+	import type { GnssRiskResult, KpSummary } from '$types/api';
 	import { fetchApi } from '$lib/stores/dashboard';
 	import { formatLocal } from '$lib/utils/timeFormat';
 	import { onMount } from 'svelte';
 
 	let risk = $state<GnssRiskResult | null>(null);
+	let kpSummary = $state<KpSummary | null>(null);
 	let loading = $state(true);
 	let methodologyOpen = $state(false);
 
 	onMount(async () => {
-		const data = await fetchApi<GnssRiskResult>('/api/v1/gnss/risk');
-		if (data) risk = data;
+		const [riskData, kpData] = await Promise.all([
+			fetchApi<GnssRiskResult>('/api/v1/gnss/risk'),
+			fetchApi<KpSummary>('/api/v1/kp/summary'),
+		]);
+		if (riskData) risk = riskData;
+		if (kpData) kpSummary = kpData;
 		loading = false;
 	});
 
@@ -154,7 +160,18 @@
 		</Card>
 	</section>
 
-	<!-- Section 5: Methodology (collapsible) -->
+	<!-- Section 5: Historical Kp Bar Chart -->
+	<section class="section-historical">
+		<Card title="Historical Kp — 3-Hour Intervals">
+			{#if kpSummary?.recent}
+				<KpChart data={kpSummary.recent} />
+			{:else}
+				<p class="muted">Chart data loading&hellip;</p>
+			{/if}
+		</Card>
+	</section>
+
+	<!-- Section 6: Methodology (collapsible) -->
 	<section class="section-methodology">
 		<button class="methodology-toggle" onclick={() => methodologyOpen = !methodologyOpen} aria-expanded={methodologyOpen}>
 			<span>Methodology</span>
@@ -211,6 +228,7 @@
 	.section-drivers,
 	.section-impact,
 	.section-guidance,
+	.section-historical,
 	.section-methodology {
 		margin-top: var(--space-xl);
 	}
