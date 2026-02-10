@@ -1,13 +1,14 @@
 /// <reference types="@sveltejs/kit" />
 /// <reference types="@cloudflare/workers-types" />
 
-// v0.1.0 — Platform bindings for Cloudflare Pages + D1
+// v0.2.0 — Platform bindings for Cloudflare Pages + D1
 
 declare global {
 	namespace App {
 		interface Platform {
 			env: {
 				DB: D1Database;
+				CRON_WORKER_URL: string;
 			};
 			context: ExecutionContext;
 			caches: CacheStorage & { default: Cache };

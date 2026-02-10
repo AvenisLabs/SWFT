@@ -1,4 +1,4 @@
-<!-- AnimationPlayer.svelte v0.2.0 — Client-side frame animation player -->
+<!-- AnimationPlayer.svelte v0.3.0 — Client-side frame animation player -->
 <script lang="ts">
 	import type { AnimationManifest, AnimationFrame } from '$types/api';
 	import { fetchApi } from '$lib/stores/dashboard';
@@ -7,12 +7,13 @@
 	interface Props {
 		panelId: string;
 		frameRate?: number; // ms between frames
+		autoplay?: boolean; // start playing on load (default false)
 	}
-	let { panelId, frameRate = 200 }: Props = $props();
+	let { panelId, frameRate = 200, autoplay = false }: Props = $props();
 
 	let frames = $state<AnimationFrame[]>([]);
 	let currentIndex = $state(0);
-	let playing = $state(true);
+	let playing = $state(false);
 	let loading = $state(true);
 	let error = $state(false);
 	let timer: ReturnType<typeof setInterval> | null = null;
@@ -25,7 +26,7 @@
 		if (manifest && manifest.frames.length > 0) {
 			frames = manifest.frames;
 			loading = false;
-			startPlayback();
+			if (autoplay) startPlayback();
 		} else {
 			loading = false;
 			error = true;

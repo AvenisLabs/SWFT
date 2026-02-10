@@ -1,8 +1,9 @@
-<!-- +layout.svelte v0.3.0 — Root layout with navigation -->
+<!-- +layout.svelte v0.6.0 — Root layout with navigation -->
 <script>
 	import '../app.css';
 	import { formatBuildTime } from '$lib/utils/buildInfo';
-	let { children } = $props();
+	import ExtLink from '$lib/components/ExtLink.svelte';
+	let { children, data } = $props();
 
 	const buildTime = formatBuildTime();
 </script>
@@ -20,6 +21,7 @@
 			<a href="/alerts">Alerts</a>
 			<a href="/events">Events</a>
 			<a href="/panels">Imagery</a>
+			<a href="/gnss-reliability">Knowledge Base</a>
 		</div>
 	</nav>
 
@@ -29,7 +31,8 @@
 
 	<footer class="app-footer">
 		<p>&copy; 2026 SWFT SkyPixels &mdash; Last updated: {buildTime}</p>
-		<p class="attribution">Data sourced from <a href="https://www.swpc.noaa.gov" target="_blank" rel="noopener">NOAA Space Weather Prediction Center</a> &middot; v0.2.0</p>
+		<p class="footer-links"><a href="/gnss-reliability">GNSS Reliability Guide</a></p>
+		<p class="attribution">Data sourced from <ExtLink href="https://www.swpc.noaa.gov">NOAA Space Weather Prediction Center</ExtLink> &middot; v0.2.0</p>
 	</footer>
 </div>
 
@@ -92,6 +95,15 @@
 	}
 
 	.app-footer a {
+		color: var(--text-secondary);
+	}
+
+	.footer-links {
+		margin-top: var(--space-xs);
+		font-size: 0.75rem;
+	}
+
+	.footer-links a {
 		color: var(--text-secondary);
 	}
 

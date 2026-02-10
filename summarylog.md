@@ -1,223 +1,93 @@
 # SWPC-Web Summary Log
 
-## 2026-02-09 12:00 — Created CLAUDE.md
+## 2026-02-10 02:15 — Only autoplay 304Å animation on imagery page
 
-Created `CLAUDE.md` project-level instructions file for Claude Code. Analyzed the full codebase architecture including:
-- SvelteKit Pages app + Cron Worker dual-deployment structure
-- Build/dev/test commands
-- API envelope pattern, caching, D1 helpers
-- Svelte 5 runes conventions
-- NOAA naming conventions and data quirks
-- Key directory layout and path aliases
+Changed `AnimationPlayer.svelte` (v0.2.0 → v0.3.0) to accept an `autoplay` prop (default `false`). Previously all animations started playing immediately on load. Now only the SUVI 304Å panel autoplays; the rest load paused on the first frame and require a click to play. Updated `PanelGrid.svelte` (v0.1.0 → v0.2.0) to pass `autoplay={panel.id === 'suvi-304'}`.
 
-Rotated previous summarylog.md to `summarylog_2026-02-06.md`.
+## 2026-02-10 00:54 — Add Knowledge Base nav tab
 
----
+Added "Knowledge Base" link to the top navigation bar in `+layout.svelte` (v0.5.0 → v0.6.0), pointing to `/gnss-reliability`. Now visible site-wide alongside Home, GNSS, Alerts, Events, and Imagery tabs.
 
-## 2026-02-09 15:45 — Created README.md
+Build: zero warnings. Deployed to Cloudflare Pages.
 
-Created full project `README.md` covering:
-- Feature overview: dashboard, GNSS risk model (4-factor weighted composite), alerts, panels
-- All 5 frontend pages with route table
-- All 13 API endpoints with descriptions and response envelope format
-- Tech stack table (SvelteKit, Svelte 5, CF Pages, D1, Workers, Vitest)
-- Architecture diagram showing Cron Worker → D1 → SvelteKit → clients data flow
-- Data sources (NOAA SWPC endpoints)
-- Database schema (9 tables) with purpose descriptions
-- Development setup: prerequisites, install, local dev, testing, type checking, build, deploy
-- Project directory structure
-- Roadmap (Phase 1 complete, Phase 2–3 planned)
-- NOAA data attribution
+## 2026-02-10 00:49 — GNSS Reliability hub page visual polish
 
----
+Updated `src/routes/gnss-reliability/+page.svelte` (v0.2.0 → v0.3.0):
+- "Coming soon" labels now bright yellow (`#f5c542`) with bold weight for visibility
+- Live articles ("How Space Weather Affects GPS", "Why RTK Drops to FLOAT") now have a blue "Read now →" badge and a persistent blue border on their cards
+- Uses `:has(.live)` selector for card border highlight
 
-## 2026-02-09 16:01 — Committed & Pushed All Pending Changes
+Build: zero warnings. Deployed to Cloudflare Pages.
 
-Committed and pushed `ecbd19b` to `origin/master` with 6 files: CLAUDE.md, README.md, summarylog.md, summarylog_2026-02-06.md, swft_gpt_update.md, website update.md.
+## 2026-02-10 00:35 — Fix CRON_WORKER_URL + clarify dashboard link counts
 
----
+**Bug fix:** `CRON_WORKER_URL` in `wrangler.toml` had wrong subdomain (`skypixels` instead of `maine-sky-pixels`), causing CF error 1016 (DNS resolution failure) when triggering manual link checks. Fixed to `https://swft-cron-ingest.maine-sky-pixels.workers.dev`.
 
-## 2026-02-09 16:47 — UI/UX Overhaul (Phases 0–5)
+**Dashboard clarity:** The dashboard showed "13 healthy" in the check result toast but "26 healthy" in the summary cards — both correct but measuring different things:
+- 13 = unique URLs checked (what the link checker deduplicates to)
+- 26 = link placements in `site_links` (same URL on different pages = separate rows, e.g. NOAA footer on all 8 pages = 8 rows)
 
-Implemented full UI/UX overhaul across 6 phases:
+Updated `admin/+page.svelte` v0.2.0:
+- Added "Unique URLs" card alongside "Link Placements" card
+- Check run section now says "unique URLs checked"
+- Toast message clarified with "(unique URLs)" suffix
 
-**Phase 0 — Footer + Accessibility:**
-- Created `src/lib/utils/buildInfo.ts` — Vite-injected `__BUILD_TIME__` with America/New_York formatting
-- Updated `vite.config.ts` with `define: { __BUILD_TIME__ }`
-- Merged footer: copyright + last updated + NOAA attribution + version on two lines
-- Improved contrast: `--text-secondary` → `#9eaab6`, `--text-muted` → `#7d8590`
-- Added `:focus-visible`, `::selection`, `.sr-only` global styles
-- Added `aria-label` to AlertCard toggle button, `aria-live` to AnimationPlayer frame counter
+**Verification:** Confirmed all 21 ExtLink placements in source match live site output exactly. Zero hardcoded external `<a>` tags remain. D1 `site_links` table has 26 rows (13 unique URLs across 8 crawled pages) — all healthy (HTTP 200).
 
-**Phase 1 — Kp Chart + Time System:**
-- Enlarged KpChart: BAR_HEIGHT 120→220, BAR_WIDTH 28→40, MAX_BARS 16→24, larger fonts
-- Removed fixed SVG height — responsive via viewBox + width="100%"
-- Created `src/lib/utils/timeFormat.ts` — `formatLocal()`, `formatUTC()`, `formatDual()`, `formatDateHeader()`, `dateKey()`
-- Replaced all `formatTimestamp()` usage with new time functions across AlertCard, KpDisplay, events page, events detail page
-- Events detail page uses `formatDual()` for UTC + local display
-- Deprecated `formatTimestamp()` in formatters.ts
+## 2026-02-10 00:10 — Admin section: link management, ExtLink component, check history
 
-**Phase 2 — Card Linking + Help + Alert Preview:**
-- Created `src/lib/components/HelpPopover.svelte` — accessible `?` popover with keyboard support, click-outside close
-- Updated `Card.svelte` to support `href` prop (clickable card) and `headerExtra` snippet slot
-- Homepage cards now link: Kp → /gnss, GNSS Risk → /gnss, Active Alerts → /alerts
-- Added help popovers to all 3 homepage cards with descriptive text
-- Improved alert preview: 3 items max, severity badge with scale type, event type label, truncated summary, separators
+Implemented full admin dashboard for external link health monitoring and override management.
 
-**Phase 3 — GNSS Risk Bar:**
-- Added horizontal risk bar to homepage GNSS Risk card: colored fill, marker, 0-100 scale labels
-- Animated transitions on fill width and marker position
-
-**Phase 4 — Events + Alerts Improvements:**
-- Events page: grouped by date using `formatDateHeader()` with styled date section headers
-- Alerts page: complete overhaul with category filter chips (7 types), severity filter chips (4 levels), search input, active-only toggle, client-side pagination (15/page), results count display
-- Alert classifier fix in cron worker: Electron/2MeV/integral flux/energetic → solar_radiation; magnetometer/sudden impulse/SSC → geomagnetic_storm; HSS → solar_wind
-
-**Phase 5 — GNSS Page Rework:**
-- Reorganized into 5 sections: Current Risk (with risk bar + timestamp), Risk Drivers (2-col grid with mini-cards + help popovers), Operational Impact (RTK/PPP/Static/Drone guidance), Operator Guidance (highlighted current level), Methodology (collapsible)
-
-**Files modified:** 15 (3 new, 12 modified)
-**Tests:** 46/46 passing | **Build:** successful, zero warnings
-
----
-
-## 2026-02-09 17:16 — Cloudflare Deployment & Project Rename
-
-- Deployed cron worker `swft-cron-ingest` to Cloudflare (alert classifier fix live)
-- Deleted old `swpc-web` Pages project (custom domains removed first)
-- Confirmed old `swpc-cron-ingest` worker already deleted
-- Created new `swft-web` Pages project with `--production-branch master`
-- Deployed Pages app to `https://swft-web.pages.dev`
-- Updated `wrangler.toml` project name from `swpc-web` → `swft-web`
-- Custom domains (`swft.skypixels.org`, `swf.skypixels.org`) need manual re-add in CF dashboard
-
----
-
-## 2026-02-09 17:35 — Kp Chart & Font Refinements + Help Popover Fix
-
-**Kp Chart tweaks:**
-- Reduced BAR_HEIGHT from 220 → 160 (less tall)
-- Switched from UTC to local time display (`getHours()`)
-- Changed time labels to HH:MM format (e.g. "15:45")
-- Added date range label above the legend line (e.g. "Feb 9, 2026" or "Feb 8, 2026 – Feb 9, 2026")
-
-**Font brightness overhaul:**
-- `--text-primary`: `#f0f6fc` (bright white)
-- `--text-secondary`: `#c9d1d9` (light gray)
-- `--text-muted`: `#9eaab6` (medium gray)
-
-**Help popover fix:**
-- Converted from click-based to pure CSS hover tooltip
-- Eliminates conflict where clicking `?` icon triggered the parent card link
-- Uses `<abbr>` element with CSS `:hover` — no JS event handlers needed
-- Zero a11y build warnings
-
-**Commits:** `481d90f`, `8afa318` | **Build:** zero warnings | **Deployed** to CF Pages
-
----
-
-## 2026-02-09 17:56 — Estimated Kp Line Chart + GNSS Explainer + Compact Historical Chart
-
-Implemented near-real-time estimated Kp visualization with GNSS impact reference:
-
-**New D1 table + migration (`0003_kp_estimated.sql`):**
-- `kp_estimated` table: 15-minute downsampled buckets from 1-min NOAA data
+**Phase 1 — D1 Migration** (`migrations/0004_admin_links.sql`):
+- `site_links` table: discovered external links with override fields (url, text, action)
+- `link_check_runs` table: run metadata (timestamps, counts, trigger type)
+- `link_check_results` table: per-URL results per run
 - Applied locally and remotely
 
-**Cron worker changes:**
-- `noaa-client.ts`: Added `fetchEstimatedKp()` — fetches `/json/planetary_k_index_1m.json`, groups by 15-min floor, averages
-- `db.ts`: Added `upsertKpEstimated()` with INSERT OR REPLACE (re-fetches update averages)
-- New `ingest-kp-estimated.ts` task — fetch, upsert, cleanup rows >12h old
-- Wired into `*/3` schedule alongside existing Kp + solar wind ingestion
+**Phase 2 — Server helpers** (`src/lib/server/links.ts` + `src/lib/types/api.ts`):
+- Query functions: getActiveOverrides, getAllLinks, getLinkById, updateLinkOverride, check run queries
+- New types: SiteLink, LinkOverride, LinkCheckRun, LinkCheckResult
 
-**SvelteKit API + types:**
-- `KpEstimatedPoint` type added to `api.ts`
-- `getEstimatedKp()` server helper in `kp.ts`
-- New `/api/v1/kp/estimated` endpoint with `?hours=` param (1–12, default 3)
-- `CACHE_TTL.KP_ESTIMATED: 120` and `NOAA_ENDPOINTS.KP_ESTIMATED_1M` constants
-- SSR loading in `+page.server.ts` via parallel `Promise.all`
+**Phase 3 — ExtLink component** (`src/lib/components/ExtLink.svelte` + `src/routes/+layout.server.ts`):
+- Component reads overrides from `$page.data.linkOverrides` (loaded by layout server)
+- Three render modes: default (link), unlink (text only), remove (hidden)
+- Layout server loads active overrides from D1 with graceful fallback
 
-**New components:**
-- `KpLineChart.svelte`: SVG line chart with non-linear Y axis (60% for Kp 0–4, 30% for 4–7, 10% for 7–9), color-coded zone bands, dashed threshold lines, 30-min x-axis ticks, data point dots
-- `KpGnssExplainer.svelte`: 3-column CSS grid (Normal/Storm/Severe) with per-Kp-level GNSS impact descriptions, active row highlighting based on current estimated Kp, mobile-responsive collapse
+**Phase 4 — Link migration**:
+- Replaced all 21 external `<a>` tags with `<ExtLink>` across 3 files
+- `+layout.svelte` (1), `how-space-weather-affects-gps/+page.svelte` (10), `rtk-float-drops/+page.svelte` (10)
 
-**Existing component changes:**
-- `KpChart.svelte` shrunk 50%: BAR_HEIGHT 160→80, BAR_WIDTH 40→20, GAP 4→2, font sizes reduced, min-height 200→100px, updated legend text
+**Phase 5 — Admin API endpoints** (5 new files under `src/routes/api/v1/admin/`):
+- GET links, PUT links/[id], POST link-check (proxy to cron worker), GET link-checks, GET link-checks/[id]
+- Added CRON_WORKER_URL to wrangler.toml and app.d.ts
 
-**Homepage layout (`+page.svelte`):**
-1. Estimated Kp line chart with help popover
-2. GNSS effects explainer (inside same card)
-3. Compact historical bar chart
-- Client-side `/api/v1/kp/estimated` fetch in refreshData() cycle
+**Phase 6 — Admin UI** (5 new files under `src/routes/admin/`):
+- Dashboard: health summary cards, last check run, manual trigger button
+- Link management: table with inline editing (override URL, text, action)
+- Check history: list of past runs + detail view with per-URL results
 
-**Files created:** 5 | **Files modified:** 9
-**Tests:** 46/46 passing | **Build:** zero warnings
-**Deployed:** Cron worker + Pages app to Cloudflare
+**Phase 7 — Cron worker updates**:
+- `link-crawler.ts` v0.2.0: extracts link text via HTMLRewriter (returns `Map<url, Map<page, text>>`)
+- `link-checker.ts` v0.2.0: accepts new map structure
+- `check-links.ts` v0.3.0: creates check run, upserts site_links, persists results, accepts triggerType
+- `index.ts` v0.5.0: passes 'scheduled'/'manual' trigger type
+- Added `/panels` to SITE_PATHS
 
----
+**Files created (11):** migration, server helpers, ExtLink, layout.server, 5 admin pages, 5 API endpoints
+**Files modified (8):** layout.svelte, 2 article pages, api.ts, app.d.ts, wrangler.toml, 4 cron worker files
 
-## 2026-02-09 18:10 — Fix CLS Layout Shift (PageSpeed Insights Performance)
+Build: 0 new errors, 0 new warnings, 46 tests pass. Deployed SvelteKit app + cron worker to production.
 
-Eliminated Cumulative Layout Shift (CLS) sources identified via PageSpeed Insights:
+## 2026-02-10 00:04 — Fact-check corrections to "RTK Float Drops" article
 
-**SSR-prefetch all dashboard data (`+page.server.ts`):**
-- Added `computeGnssRisk(db)` and `getActiveAlerts(db)` to SSR `Promise.all`
-- Previously GNSS risk + alerts were client-only fetches causing HIGH-severity CLS
-- All 4 data sources (Kp summary, estimated Kp, GNSS risk, alerts) now SSR-hydrated
+Applied 5 corrections to `src/routes/gnss-reliability/rtk-float-drops/+page.svelte` (v0.2.0 → v0.3.0) based on fact-check against authoritative sources (SwiftNav, Trimble, ESA Navipedia, PX4 issues, peer-reviewed journals):
 
-**SSR hydration in `+page.svelte`:**
-- Added `$effect()` blocks for `serverGnssRisk` and `serverAlerts` hydration
-- Handles empty alerts array edge case (no active alerts = loading false, not stuck)
+1. **Reworded "often caused by ionosphere"** (line 30) — Changed to acknowledge obstructions, multipath, and radio link as common causes, with ionospheric disturbance dominant specifically during geomagnetic storms. Per SwiftNav/Trimble troubleshooting guides.
+2. **Reworded Key Takeaway "often atmospheric"** (line 192) — Same qualification: atmospheric causes dominate during storms but other causes are equally common in routine operations.
+3. **Added safety qualifier to flight control claim** (line 174) — Now notes that some autopilot platforms may experience position jumps during RTK transitions. Per PX4 issues #21555 and #21471.
+4. **Fixed FLOAT analogy** (line 110) — Changed "occasionally drifts" to "can't hold exact speed" to convey persistent degradation rather than intermittent.
+5. **Replaced CORS link with ESA Navipedia RTK Fundamentals** (line 48) — Old link pointed to CORS network homepage, not RTK fundamentals. New link: `gssc.esa.int/navipedia/index.php/RTK_Fundamentals`.
 
-**Min-height reservations to prevent loading→loaded height jumps:**
-- `KpDisplay.svelte`: `.kp-display` → `min-height: 140px`
-- `KpLineChart.svelte`: `.kp-line-chart` → `min-height: 80px`
-- `+page.svelte`: `.placeholder-content` → `min-height: 140px`, `.alerts-content` → `min-height: 100px`
+Also fixed 4 unused CSS selector warnings across both article pages (`.reference a` and `.source-list a` → `.reference :global(a)` and `.source-list :global(a)`) caused by ExtLink component boundary.
 
-**Commit:** `0fbb2b8` | **Tests:** 46/46 | **Build:** zero warnings | **Deployed** to CF Pages
-
----
-
-## 2026-02-09 18:53 — Eliminate Hydration CLS (PageSpeed 0.433 → 0)
-
-Root cause: `$state` initialized to empty defaults, then `$effect` restored SSR data asynchronously. During hydration there was a frame where `kpEstimated = []` showed loading text, then the `$effect` fired and replaced it with the full SVG chart — causing a 0.433 CLS score.
-
-**Fix — SSR-derived overlay pattern:**
-- `$derived` reads SSR data from `data` prop (renders on first paint, no empty frame)
-- `$state` overlays start as `undefined` (meaning "use SSR data")
-- Final values merged: `$derived(clientX !== undefined ? clientX : ssrX)`
-- `refreshData()` writes to client overlays, seamlessly replacing SSR data
-- Zero `$effect` blocks for hydration, zero `state_referenced_locally` warnings
-
-**Additional:** `KpLineChart` container gets `aspect-ratio: 600 / 200` instead of `min-height`, matching the SVG viewBox exactly.
-
-**Commit:** `494efb9` | **Tests:** 46/46 | **Build:** zero warnings | **Deployed** to CF Pages
-
----
-
-## 2026-02-09 19:04 — Fix Accessibility Issues (PageSpeed Insights)
-
-Addressed heading hierarchy and color contrast failures flagged by PageSpeed Insights:
-
-**Heading hierarchy fix:**
-- `Card.svelte` v0.3.0: Changed card titles from `<h3>` → `<h2>` (page has `<h1>`, was skipping to `<h3>`)
-- `KpGnssExplainer.svelte` v0.2.0: Changed column headers from `<h4>` → `<h3>` for proper hierarchy
-
-**Color contrast fixes (WCAG AA):**
-- `+page.svelte`: Alert badge text `#fff` → `#0d1117` (dark text on colored severity backgrounds for ~7:1 contrast)
-- `KpGnssExplainer.svelte`: Removed `opacity: 0.8` from `.col-tag` that was reducing effective contrast
-- `KpLineChart.svelte` v0.2.0: SVG axis labels `--text-muted` → `--text-secondary` for better small-text contrast; legend font 0.7→0.75rem
-- `KpChart.svelte` v0.7.0: SVG time labels `--text-muted` → `--text-secondary`; chart-date and chart-legend colors `--text-muted` → `--text-secondary`, font 0.7→0.75rem
-
-**Files modified:** 5 | **Tests:** 46/46 | **Build:** zero warnings | **Deployed** to CF Pages
-
----
-
-## 2026-02-09 19:17 — Move Historical Kp Chart to GNSS Page
-
-Moved the "Historical Kp — 3-Hour Intervals" bar chart from the homepage to the GNSS risk assessment page:
-
-- `+page.svelte` v0.7.0: Removed KpChart import and historical chart Card
-- `gnss/+page.svelte` v0.4.0: Added KpChart import, KpSummary client-side fetch (parallel with risk), new "Historical Kp" section between Operator Guidance and Methodology
-
-**Files modified:** 2 | **Tests:** 46/46 | **Build:** zero warnings | **Deployed** to CF Pages
+Build verified clean with zero warnings.

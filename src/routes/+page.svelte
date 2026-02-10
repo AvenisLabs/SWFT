@@ -1,4 +1,4 @@
-<!-- +page.svelte v0.7.0 — Dashboard home with SSR-prefetched data, CLS-free layout -->
+<!-- +page.svelte v0.8.0 — Dashboard home with SSR-prefetched data, CLS-free layout -->
 <script lang="ts">
 	import Card from '$lib/components/Card.svelte';
 	import HelpPopover from '$lib/components/HelpPopover.svelte';
@@ -201,6 +201,65 @@
 		</Card>
 
 	</section>
+
+	<!-- Knowledge Hub — GNSS education cards linking to /gnss-reliability -->
+	<section class="knowledge-section">
+		<h2>Understanding GNSS Reliability</h2>
+		<div class="knowledge-grid">
+			<a href="/gnss-reliability/how-space-weather-affects-gps" class="knowledge-card">
+				<div class="knowledge-icon">
+					<!-- Satellite icon -->
+					<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+						<circle cx="12" cy="12" r="2" />
+						<path d="M7 17l-2 2" />
+						<path d="M17 7l2-2" />
+						<path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+						<path d="M8.46 15.54a5 5 0 0 1 0-7.07" />
+						<path d="M18.36 5.64a9 9 0 0 1 0 12.73" />
+						<path d="M5.64 18.36a9 9 0 0 1 0-12.73" />
+					</svg>
+				</div>
+				<h3 class="knowledge-title">How Space Weather Affects GPS, RTK, and Survey Accuracy</h3>
+				<p class="knowledge-summary">Overview of how solar activity impacts GNSS positioning and RTK performance.</p>
+				<span class="knowledge-link">Read article &rarr;</span>
+			</a>
+
+			<a href="/gnss-reliability" class="knowledge-card">
+				<div class="knowledge-icon">
+					<!-- Drone/propeller icon -->
+					<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+						<path d="M5 5a2 2 0 1 0 4 0 2 2 0 0 0-4 0" />
+						<path d="M15 5a2 2 0 1 0 4 0 2 2 0 0 0-4 0" />
+						<path d="M5 19a2 2 0 1 0 4 0 2 2 0 0 0-4 0" />
+						<path d="M15 19a2 2 0 1 0 4 0 2 2 0 0 0-4 0" />
+						<path d="M9 5h6" />
+						<path d="M9 19h6" />
+						<path d="M12 8v8" />
+					</svg>
+				</div>
+				<h3 class="knowledge-title">Kp Index for Drone Pilots: What Number Is Too High?</h3>
+				<p class="knowledge-summary">Understanding Kp values and operational risk for drone mapping missions.</p>
+				<span class="knowledge-link">Learn more &rarr;</span>
+			</a>
+
+			<a href="/gnss-reliability" class="knowledge-card">
+				<div class="knowledge-icon">
+					<!-- Signal wave icon -->
+					<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+						<path d="M2 12h2" />
+						<path d="M6 8v8" />
+						<path d="M10 4v16" />
+						<path d="M14 6v12" />
+						<path d="M18 9v6" />
+						<path d="M22 11v2" />
+					</svg>
+				</div>
+				<h3 class="knowledge-title">Why RTK Drones Drop from FIX to FLOAT</h3>
+				<p class="knowledge-summary">Common causes of RTK instability and the role of ionospheric disturbances.</p>
+				<span class="knowledge-link">Learn more &rarr;</span>
+			</a>
+		</div>
+	</section>
 </main>
 
 <style>
@@ -368,8 +427,70 @@
 		50% { opacity: 0.4; }
 	}
 
+	/* Knowledge Hub section */
+	.knowledge-section {
+		margin-top: var(--space-xl);
+	}
+
+	.knowledge-section h2 {
+		font-size: var(--font-size-lg);
+		color: var(--text-primary);
+		margin-bottom: var(--space-lg);
+	}
+
+	.knowledge-grid {
+		display: grid;
+		grid-template-columns: repeat(3, 1fr);
+		gap: var(--space-lg);
+	}
+
+	.knowledge-card {
+		background: var(--bg-card);
+		border: 1px solid var(--border-default);
+		border-radius: var(--border-radius);
+		padding: var(--space-lg);
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-sm);
+		transition: border-color 0.2s;
+		text-decoration: none;
+		color: inherit;
+	}
+
+	.knowledge-card:hover {
+		border-color: var(--accent-blue);
+		text-decoration: none;
+	}
+
+	.knowledge-icon {
+		color: var(--accent-blue);
+	}
+
+	.knowledge-title {
+		color: var(--text-primary);
+		font-size: var(--font-size-sm);
+		font-weight: 600;
+		line-height: 1.4;
+	}
+
+	.knowledge-summary {
+		color: var(--text-secondary);
+		font-size: 0.8rem;
+		line-height: 1.5;
+	}
+
+	.knowledge-link {
+		color: var(--accent-blue);
+		font-size: 0.8rem;
+		margin-top: auto;
+	}
+
 	@media (max-width: 768px) {
 		.dashboard-grid {
+			grid-template-columns: 1fr;
+		}
+
+		.knowledge-grid {
 			grid-template-columns: 1fr;
 		}
 	}

@@ -1,4 +1,4 @@
-<!-- PanelGrid.svelte v0.1.0 — Grid display of solar imagery panels -->
+<!-- PanelGrid.svelte v0.2.0 — Grid display of solar imagery panels -->
 <script lang="ts">
 	import type { PanelDefinition } from '$types/api';
 	import AnimationPlayer from './AnimationPlayer.svelte';
@@ -22,7 +22,7 @@
 			<div class="panel-item">
 				<h4 class="panel-label">{panel.label}</h4>
 				{#if panel.is_animation}
-					<AnimationPlayer panelId={panel.id} />
+					<AnimationPlayer panelId={panel.id} autoplay={panel.id === 'suvi-304'} />
 				{:else}
 					<div class="panel-image">
 						<img src="/api/v1/panels/{panel.id}/latest" alt={panel.label} loading="lazy" />

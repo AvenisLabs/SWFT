@@ -3,9 +3,13 @@ name = "swft-cron-ingest"
 main = "src/index.ts"
 compatibility_date = "2025-01-01"
 
-# Cron schedules: Kp+solar every 3min, alerts every 5min, summaries every 15min
+# Cron schedules: Kp+solar every 3min, alerts every 5min, summaries every 15min, links weekly
 [triggers]
-crons = ["*/3 * * * *", "*/5 * * * *", "*/15 * * * *"]
+crons = ["*/3 * * * *", "*/5 * * * *", "*/15 * * * *", "0 12 * * 1"]
+
+# Plain-text vars (secrets go via `wrangler secret put`)
+[vars]
+SITE_URL = "https://swft.skypixels.org"
 
 # Shared D1 database with the Pages app
 [[d1_databases]]

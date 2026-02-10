@@ -4,6 +4,10 @@ compatibility_date = "2025-01-01"
 compatibility_flags = ["nodejs_compat"]
 pages_build_output_dir = ".svelte-kit/cloudflare"
 
+# Plain-text vars
+[vars]
+CRON_WORKER_URL = "https://swft-cron-ingest.maine-sky-pixels.workers.dev"
+
 # D1 binding shared with the cron worker
 [[d1_databases]]
 binding = "DB"

@@ -1,4 +1,4 @@
-// api.ts v0.2.0 — API response contracts for /api/v1/* endpoints
+// api.ts v0.3.0 — API response contracts for /api/v1/* endpoints
 
 /** Standard envelope wrapping all API responses */
 export interface ApiResponse<T> {
@@ -130,4 +130,54 @@ export interface StatusResponse {
 	alert_row_count: number;
 	solarwind_row_count: number;
 	version: string;
+}
+
+/** Discovered external link with override fields */
+export interface SiteLink {
+	id: number;
+	url: string;
+	link_text: string;
+	page_path: string;
+	first_seen: string;
+	last_seen: string;
+	last_status: number | null;
+	last_check: string | null;
+	override_url: string | null;
+	override_text: string | null;
+	action: 'default' | 'unlink' | 'remove';
+}
+
+/** Active override returned to layout for ExtLink resolution */
+export interface LinkOverride {
+	url: string;
+	page_path: string;
+	override_url: string | null;
+	override_text: string | null;
+	action: 'default' | 'unlink' | 'remove';
+}
+
+/** Check run metadata */
+export interface LinkCheckRun {
+	id: number;
+	started_at: string;
+	completed_at: string | null;
+	trigger_type: 'scheduled' | 'manual';
+	total_links: number;
+	healthy_count: number;
+	broken_count: number;
+	status: 'running' | 'completed' | 'error';
+}
+
+/** Per-URL result within a check run */
+export interface LinkCheckResult {
+	id: number;
+	run_id: number;
+	url: string;
+	ok: boolean;
+	status_code: number | null;
+	status_text: string | null;
+	method: string | null;
+	response_time_ms: number | null;
+	found_on_pages: string;
+	checked_at: string;
 }
