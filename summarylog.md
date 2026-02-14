@@ -1,5 +1,27 @@
 # SWPC-Web Summary Log
 
+## 2026-02-14 23:38 — Add "When Should Drone Pilots Cancel Missions?" to Knowledge Hub
+
+Built new Knowledge Hub article page at `/gnss-reliability/drone-mission-cancel` from Library content brief:
+
+1. **New Svelte page** (`+page.svelte` v0.1.0): 10 sections — overview, key indicators (Kp/S-scale/scintillation/RTK), Kp thresholds table, when to cancel (4 red decision cards), when to postpone (3 yellow cards), when safe to fly (2 green cards), mapping mission considerations, go/mitigate/no-go framework (3-column grid), why waiting works, key takeaways + authoritative resources.
+2. **2 broken links fixed:**
+   - FAA GNSS Interference PDF (404) → FAA GNSS Interference Resource Guide page
+   - UNAVCO GNSS & Space Weather (404) → EarthScope Consortium
+3. **Kp thresholds tightened** (critical safety correction):
+   - GO: Kp ≤ 3 (was ≤ 3, unchanged)
+   - MITIGATE: Kp 4–5 (was 4–6, too permissive)
+   - NO-GO: Kp ≥ 6 (was ≥ 7, dangerously high for survey-grade work)
+   - Per GeoCue industry guidance and Andalsvik & Jacobsen 2014 research
+4. **Solar radiation storms reframed** — changed from "degrades satellite signals and electronics" (misleading for ground operators) to "proton events ionize the polar atmosphere, indirectly degrading GNSS signal quality through the ionosphere"
+5. **Kp ≤ 3 safety qualifier added** — equatorial scintillation, TIDs, and solar radio bursts can degrade GNSS independently of Kp
+6. **All 4 analogies validated** — all relevant to drone pilot audience, no replacements needed
+7. **Hub updated** (v0.11.0): "When Should Drone Pilots Cancel Missions?" converted from coming-soon to live entry. Removed unused `div.article-link` and `.coming-soon` CSS selectors (no more coming-soon entries).
+8. **Cross-links implemented**: gnss-risk-levels, ionospheric-delay, glossary#scintillation, rtk-float-drops, solar-flares-vs-storms
+9. Source markdown moved to `Library/completed/`.
+
+Build: 0 warnings. Tests: 46 passed. Deployed to Cloudflare Pages.
+
 ## 2026-02-14 23:26 — Remove live weather banner from Knowledge Hub articles
 
 Removed the redundant live weather banner (Kp Index / Trend / GNSS Risk widget) from 4 Knowledge Hub article pages. The navbar already shows current and predicted Kp, making the in-article banner unnecessary.

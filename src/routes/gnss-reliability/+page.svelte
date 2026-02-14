@@ -1,4 +1,4 @@
-<!-- +page.svelte v0.10.0 — GNSS Reliability Knowledge Hub landing page -->
+<!-- +page.svelte v0.11.0 — GNSS Reliability Knowledge Hub landing page -->
 
 <svelte:head>
 	<title>GNSS Reliability Guide — SWFT</title>
@@ -76,11 +76,10 @@
 		</h2>
 		<ul class="article-list">
 			<li class="article-item">
-				<div class="article-link">
-					<span class="article-title">When Should Drone Pilots Cancel Missions?</span>
+				<a href="/gnss-reliability/drone-mission-cancel" class="article-link live">
+					<span class="article-title">When Should Drone Pilots Cancel Missions? <span class="badge-live">Read now &rarr;</span></span>
 					<span class="article-desc">Kp thresholds, risk indicators, and decision criteria for go/no-go flight planning.</span>
-					<span class="coming-soon">Coming soon</span>
-				</div>
+				</a>
 			</li>
 			<li class="article-item">
 				<a href="/gnss-reliability/rtk-float-drops" class="article-link live">
@@ -187,10 +186,6 @@
 		color: inherit;
 	}
 
-	div.article-link {
-		cursor: default;
-	}
-
 	a.article-link:hover {
 		text-decoration: none;
 	}
@@ -205,13 +200,6 @@
 		color: var(--text-secondary);
 		font-size: 0.8rem;
 		line-height: 1.5;
-	}
-
-	.coming-soon {
-		color: #f5c542;
-		font-size: 0.7rem;
-		font-weight: 600;
-		font-style: italic;
 	}
 
 	/* Live article indicators */

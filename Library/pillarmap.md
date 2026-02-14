@@ -3,7 +3,7 @@
 **Internal documentation only — NOT for public display.**
 Use for navigation architecture, breadcrumbs, and contextual linking decisions.
 
-Last updated: 2026-02-14
+Last updated: 2026-02-15
 
 ---
 
@@ -71,7 +71,7 @@ Links FROM:
 ### Drone Operations Section
 | Article | Route | Status |
 |---------|-------|--------|
-| When Should Drone Pilots Cancel Missions? | — | COMING SOON (in hub, no Library file) |
+| When Should Drone Pilots Cancel Missions? | `/gnss-reliability/drone-mission-cancel` | LIVE |
 | Why RTK Drops to FLOAT | `/gnss-reliability/rtk-float-drops` | LIVE |
 | Why DJI, Emlid & Base Stations Struggle | `/gnss-reliability/dji-emlid-base-stations` | LIVE |
 
