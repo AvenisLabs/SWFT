@@ -1,4 +1,4 @@
-<!-- KpLineChart.svelte v0.2.0 — SVG line chart for 15-min estimated Kp with non-linear Y axis -->
+<!-- KpLineChart.svelte v0.4.0 — SVG line chart for 15-min estimated Kp with non-linear Y axis -->
 <script lang="ts">
 	import type { KpEstimatedPoint } from '$types/api';
 
@@ -70,20 +70,25 @@
 		return dotColor(maxKp);
 	});
 
-	// Y-axis labels: placed at specific Kp values
-	const yLabels = [0, 2, 4, 5, 7, 9];
+	// Y-axis labels: show every integer 0–4 for clarity, plus storm thresholds
+	const yLabels = [0, 1, 2, 3, 4, 5, 7, 9];
 
-	// X-axis labels: every 30 minutes
+	// X-axis labels: show every 15-min data point for <=3h spans
 	let xLabels = $derived.by(() => {
 		if (chartData.length === 0) return [];
+
+		const spanHours = (timeRange.max - timeRange.min) / 3_600_000;
+		// <=3h → 15min (every data point), <=6h → 30min, <=12h → 1h, >12h → 2h
+		const intervalMin = spanHours <= 3 ? 15 : spanHours <= 6 ? 30 : spanHours <= 12 ? 60 : 120;
+
 		const labels: Array<{ ts: string; x: number; label: string }> = [];
 		const seen = new Set<string>();
 
 		for (const p of chartData) {
 			const d = new Date(p.ts);
 			const min = d.getMinutes();
-			// Show labels on the hour and half-hour
-			if (min !== 0 && min !== 30) continue;
+			if (min % intervalMin !== 0) continue;
+			if (intervalMin >= 60 && min !== 0) continue;
 			const label = `${d.getHours().toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`;
 			if (seen.has(label)) continue;
 			seen.add(label);
@@ -140,14 +145,15 @@
 					>{kp}</text>
 				{/each}
 
-				<!-- X-axis labels -->
+				<!-- X-axis labels (15-min ticks) -->
 				{#each xLabels as tick}
 					<text
 						x={tick.x}
-						y={PLOT_H + 18}
+						y={PLOT_H + 16}
 						text-anchor="middle"
 						fill="var(--text-secondary)"
-						font-size="10"
+						font-size="9"
+						font-family="var(--font-mono)"
 					>{tick.label}</text>
 				{/each}
 

@@ -1,4 +1,4 @@
-// solarwind.ts v0.1.0 — Solar wind queries
+// solarwind.ts v0.2.0 — Solar wind queries
 
 import type { D1Database } from '@cloudflare/workers-types';
 import { queryAll, queryFirst } from './db';
@@ -22,10 +22,11 @@ export async function getLatestSolarWind(db: D1Database): Promise<SolarWindLates
 
 /** Get recent solar wind data (for charts, default 24h) */
 export async function getRecentSolarWind(db: D1Database, hours = 24): Promise<SolarWindLatest[]> {
+	// datetime(ts) normalises ISO 8601 'T'/'Z' format so the comparison works correctly
 	return queryAll<SolarWindLatest>(
 		db,
 		`SELECT ts, speed, density, bt, bz, temperature FROM solarwind_summary
-		 WHERE ts > datetime('now', ? || ' hours')
+		 WHERE datetime(ts) > datetime('now', ? || ' hours')
 		 ORDER BY ts ASC`,
 		[`-${hours}`]
 	);

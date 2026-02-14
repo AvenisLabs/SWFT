@@ -1,4 +1,4 @@
-// api.ts v0.3.0 — API response contracts for /api/v1/* endpoints
+// api.ts v0.4.0 — API response contracts for /api/v1/* endpoints
 
 /** Standard envelope wrapping all API responses */
 export interface ApiResponse<T> {
@@ -25,6 +25,8 @@ export interface KpSummary {
 	status_label: string;
 	message: string;
 	recent: KpDataPoint[];
+	forecast_kp?: number;       // next 3-hour window predicted Kp
+	forecast_time?: string;     // start of that forecast window (ISO 8601)
 }
 
 /** GET /api/v1/kp/estimated */

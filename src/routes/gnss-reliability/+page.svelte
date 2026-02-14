@@ -1,4 +1,4 @@
-<!-- +page.svelte v0.3.0 — GNSS Reliability Knowledge Hub landing page -->
+<!-- +page.svelte v0.6.0 — GNSS Reliability Knowledge Hub landing page -->
 
 <svelte:head>
 	<title>GNSS Reliability Guide — SWFT</title>
@@ -30,6 +30,12 @@
 				<a href="/gnss-reliability/how-space-weather-affects-gps" class="article-link live">
 					<span class="article-title">How Space Weather Affects GPS <span class="badge-live">Read now &rarr;</span></span>
 					<span class="article-desc">Solar activity disrupts the ionosphere, degrading satellite signal accuracy and availability.</span>
+				</a>
+			</li>
+			<li class="article-item">
+				<a href="/gnss-reliability/gnss-risk-levels" class="article-link live">
+					<span class="article-title">GNSS Risk Levels for Operations <span class="badge-live">Read now &rarr;</span></span>
+					<span class="article-desc">Operational risk framework for drone RTK and survey GNSS based on the Kp index and scintillation.</span>
 				</a>
 			</li>
 			<li class="article-item">
@@ -78,6 +84,12 @@
 					<span class="article-desc">Ionospheric scintillation and signal interference cause ambiguity resolution failures in real time.</span>
 				</a>
 			</li>
+			<li class="article-item">
+				<a href="/gnss-reliability/dji-emlid-base-stations" class="article-link live">
+					<span class="article-title">Why DJI, Emlid &amp; Base Stations Struggle <span class="badge-live">Read now &rarr;</span></span>
+					<span class="article-desc">DJI RTK drones, Emlid receivers, and NTRIP networks all depend on ionospheric stability &mdash; and solar storms take it away.</span>
+				</a>
+			</li>
 		</ul>
 	</section>
 
@@ -109,11 +121,10 @@
 				</div>
 			</li>
 			<li class="article-item">
-				<div class="article-link">
-					<span class="article-title">OPUS &amp; PPP Failures Explained</span>
-					<span class="article-desc">Post-processing solutions like OPUS and PPP rely on ionospheric models that break during storms.</span>
-					<span class="coming-soon">Coming soon</span>
-				</div>
+				<a href="/gnss-reliability/opus-ppp-failures" class="article-link live">
+					<span class="article-title">OPUS &amp; PPP Failures Explained <span class="badge-live">Read now &rarr;</span></span>
+					<span class="article-desc">Why OPUS and PPP processing fails during space weather events &mdash; and what to do about it.</span>
+				</a>
 			</li>
 		</ul>
 	</section>

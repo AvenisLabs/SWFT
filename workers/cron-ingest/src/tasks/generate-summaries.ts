@@ -1,4 +1,4 @@
-// generate-summaries.ts v0.2.0 — Compute derived summaries from ingested data
+// generate-summaries.ts v0.3.0 — Compute derived summaries from ingested data
 
 import { updateCronState } from '../lib/db';
 
@@ -11,7 +11,7 @@ export async function generateSummaries(db: D1Database): Promise<{ events_create
 		// Check for geomagnetic storm conditions (Kp >= 5 in last 3 hours)
 		const stormKp = await db.prepare(`
 			SELECT ts, kp_value FROM kp_obs
-			WHERE ts > datetime('now', '-3 hours')
+			WHERE datetime(ts) > datetime('now', '-3 hours')
 			  AND kp_value >= 5
 			ORDER BY ts DESC
 			LIMIT 1
@@ -57,7 +57,7 @@ export async function generateSummaries(db: D1Database): Promise<{ events_create
 		// Check for elevated solar wind (speed > 600 km/s)
 		const fastWind = await db.prepare(`
 			SELECT ts, speed, bz FROM solarwind_summary
-			WHERE ts > datetime('now', '-1 hour')
+			WHERE datetime(ts) > datetime('now', '-1 hour')
 			  AND speed > 600
 			ORDER BY ts DESC
 			LIMIT 1

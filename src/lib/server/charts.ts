@@ -1,4 +1,4 @@
-// charts.ts v0.1.0 — QuickChart.io client for server-rendered chart PNGs
+// charts.ts v0.3.0 — QuickChart.io client for server-rendered chart PNGs
 
 import type { D1Database } from '@cloudflare/workers-types';
 import { queryAll } from './db';
@@ -10,10 +10,13 @@ interface KpChartRow {
 
 /** Build a QuickChart.io URL for a Kp bar chart */
 export async function buildKpChartUrl(db: D1Database, hours = 48): Promise<string> {
+	// datetime(ts) normalises ISO 8601 'T'/'Z' format so the comparison works correctly
+	// Filter out future timestamps — NOAA data includes predictions
 	const rows = await queryAll<KpChartRow>(
 		db,
 		`SELECT ts, kp_value as kp FROM kp_obs
-		 WHERE ts > datetime('now', ? || ' hours')
+		 WHERE datetime(ts) > datetime('now', ? || ' hours')
+		   AND datetime(ts) <= datetime('now')
 		 ORDER BY ts ASC`,
 		[`-${hours}`]
 	);

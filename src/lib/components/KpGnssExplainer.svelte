@@ -1,4 +1,4 @@
-<!-- KpGnssExplainer.svelte v0.2.0 — 3-column GNSS effects table organized by Kp range -->
+<!-- KpGnssExplainer.svelte v0.3.0 — 3-column GNSS effects table organized by Kp range -->
 <script lang="ts">
 	interface Props {
 		activeKp?: number;
@@ -117,7 +117,8 @@
 	}
 
 	.kp-row.active {
-		background: rgba(255, 255, 255, 0.06);
+		background: rgba(234, 179, 8, 0.15);
+		border: 1px solid rgba(234, 179, 8, 0.4);
 	}
 
 	.kp-badge {
