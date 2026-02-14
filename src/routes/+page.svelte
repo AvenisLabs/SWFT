@@ -224,7 +224,7 @@
 				<span class="knowledge-link">Read article &rarr;</span>
 			</a>
 
-			<a href="/gnss-reliability" class="knowledge-card">
+			<a href="/gnss-reliability/drone-mission-cancel" class="knowledge-card">
 				<div class="knowledge-icon">
 					<!-- Drone/propeller icon -->
 					<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -237,12 +237,12 @@
 						<path d="M12 8v8" />
 					</svg>
 				</div>
-				<h3 class="knowledge-title">Kp Index for Drone Pilots: What Number Is Too High?</h3>
-				<p class="knowledge-summary">Understanding Kp values and operational risk for drone mapping missions.</p>
-				<span class="knowledge-link">Learn more &rarr;</span>
+				<h3 class="knowledge-title">When Should Drone Pilots Cancel Missions?</h3>
+				<p class="knowledge-summary">Kp thresholds, risk indicators, and go/no-go decision criteria for precision drone operations.</p>
+				<span class="knowledge-link">Read article &rarr;</span>
 			</a>
 
-			<a href="/gnss-reliability" class="knowledge-card">
+			<a href="/gnss-reliability/rtk-float-drops" class="knowledge-card">
 				<div class="knowledge-icon">
 					<!-- Signal wave icon -->
 					<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -256,7 +256,7 @@
 				</div>
 				<h3 class="knowledge-title">Why RTK Drones Drop from FIX to FLOAT</h3>
 				<p class="knowledge-summary">Common causes of RTK instability and the role of ionospheric disturbances.</p>
-				<span class="knowledge-link">Learn more &rarr;</span>
+				<span class="knowledge-link">Read article &rarr;</span>
 			</a>
 		</div>
 	</section>
