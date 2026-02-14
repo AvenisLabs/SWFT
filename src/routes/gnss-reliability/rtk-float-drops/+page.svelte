@@ -1,4 +1,4 @@
-<!-- +page.svelte v0.3.0 — Pillar article: Why Your RTK Drone Suddenly Drops to FLOAT -->
+<!-- +page.svelte v0.4.0 — Pillar article: Why Your RTK Drone Suddenly Drops to FLOAT -->
 <script>
 	import ExtLink from '$lib/components/ExtLink.svelte';
 </script>
@@ -57,12 +57,12 @@
 		<section class="article-section">
 			<h2>The Ionosphere&rsquo;s Role</h2>
 			<p>
-				GNSS signals pass through the ionosphere, a region filled with charged particles. During solar activity, this layer becomes unstable.
+				GNSS signals pass through the <a href="/gnss-reliability/ionospheric-delay">ionosphere</a>, a region filled with charged particles. During solar activity, this layer becomes unstable.
 			</p>
 			<h3>The disturbances cause:</h3>
 			<ul class="effect-list">
 				<li>Rapid changes in signal delay</li>
-				<li>Signal fading (scintillation)</li>
+				<li>Signal fading (<a href="/gnss-reliability/glossary#scintillation">scintillation</a>)</li>
 				<li>Phase shifts that confuse the receiver</li>
 			</ul>
 			<p class="reference">
@@ -177,7 +177,7 @@
 				<li>GCPs may be required</li>
 			</ul>
 			<p>
-				Monitoring space weather helps anticipate these events.
+				Monitoring space weather helps anticipate these events. Check <a href="/gnss-reliability/gnss-risk-levels">GNSS risk levels</a> before flying.
 			</p>
 			<aside class="analogy">
 				<span class="analogy-label">Analogy</span>

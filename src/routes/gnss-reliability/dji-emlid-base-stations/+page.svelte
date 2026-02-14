@@ -1,4 +1,4 @@
-<!-- +page.svelte v0.1.0 — Why DJI Terra, Emlid, and Base Stations Struggle During Solar Storms -->
+<!-- +page.svelte v0.2.0 — Why DJI Terra, Emlid, and Base Stations Struggle During Solar Storms -->
 <script>
 	import ExtLink from '$lib/components/ExtLink.svelte';
 </script>
@@ -39,13 +39,13 @@
 		<section class="article-section">
 			<h2>The Common Dependency: GNSS Signals Through the Ionosphere</h2>
 			<p>
-				All RTK systems depend on receiving precise satellite signals. These signals must pass through the ionosphere, where solar storms create turbulence and irregularities.
+				All RTK systems depend on receiving precise satellite signals. These signals must pass through the <a href="/gnss-reliability/ionospheric-delay">ionosphere</a>, where solar storms create turbulence and irregularities.
 			</p>
 			<p>Effects include:</p>
 			<ul class="effect-list">
 				<li>Variable signal delay</li>
 				<li>Rapid phase changes</li>
-				<li>Signal fading (scintillation)</li>
+				<li>Signal fading (<a href="/gnss-reliability/glossary#scintillation">scintillation</a>)</li>
 				<li>Increased noise</li>
 			</ul>
 			<p class="reference">
@@ -68,7 +68,7 @@
 			</p>
 			<p>During geomagnetic storms:</p>
 			<ul class="effect-list">
-				<li>FIX solutions drop to FLOAT</li>
+				<li><a href="/gnss-reliability/rtk-float-drops">FIX solutions drop to FLOAT</a></li>
 				<li>Initialization takes longer</li>
 				<li>Position accuracy fluctuates</li>
 				<li>Satellite tracking degrades</li>

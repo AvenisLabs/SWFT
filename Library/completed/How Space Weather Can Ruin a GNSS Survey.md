@@ -20,7 +20,7 @@ High-precision GNSS surveys depend on stable signal propagation through the iono
 
 The result may be inaccurate solutions, extended processing times, inconsistent baselines, or outright failures in services like OPUS or PPP.
 
-Importantly, equipment quality does not eliminate this risk. The limiting factor is the atmosphere, not the receiver.
+Importantly, equipment quality helps but cannot eliminate this risk. During severe ionospheric disturbances, the atmosphere becomes the dominant limiting factor — even for the best receivers.
 
 **Analogy:**  
 Conducting a GNSS survey during a geomagnetic storm is like trying to measure distances with a tape measure while someone keeps pulling and twisting it — the tool works, but the medium is unstable.
@@ -39,12 +39,12 @@ During geomagnetic storms, the ionosphere becomes highly irregular, causing:
 - Cycle slips  
 
 📖 Reference:  
-NOAA SWPC — Ionospheric Impacts  
-https://www.swpc.noaa.gov/impacts/ionospheric-impacts-space-weather  
+NOAA SWPC — Space Weather Impacts
+https://www.swpc.noaa.gov/impacts/ionospheric-impacts-space-weather
 
-📖 Reference:  
-ESA Space Weather Service — GNSS Effects  
-https://swe.ssa.esa.int/gnss-effects
+📖 Reference:
+ESA Space Weather Service — Ionospheric Weather & GNSS Effects
+https://swe.ssa.esa.int/ionospheric-weather
 
 **Analogy:**  
 It’s like surveying through turbulent water — the objects haven’t moved, but their apparent positions constantly shift.
@@ -62,9 +62,9 @@ During solar storms, RTK surveys may experience:
 - Loss of consistency between points  
 - Reduced repeatability  
 
-📖 Reference:  
-International GNSS Service — Space Weather Working Group  
-https://igs.org/wg/space-weather/
+📖 Reference:
+International GNSS Service — Real-Time Service
+https://igs.org/rts/
 
 **Analogy:**  
 RTK surveying is like balancing a pencil upright. It works perfectly in calm conditions but collapses quickly when disturbed.
@@ -73,7 +73,7 @@ RTK surveying is like balancing a pencil upright. It works perfectly in calm con
 
 ## 📏 Static Surveys: More Robust but Not Immune
 
-Static GNSS surveys average observations over time, making them more resilient than RTK. However, severe ionospheric disturbances still introduce errors.
+Static GNSS surveys collect observations over extended periods, allowing processing software to leverage changing satellite geometry for more robust ambiguity resolution. This makes them more resilient than RTK, though severe ionospheric disturbances still introduce errors.
 
 Possible impacts:
 
@@ -82,9 +82,9 @@ Possible impacts:
 - Biases in final coordinates  
 - Need for longer occupation times  
 
-📖 Reference:  
-UNAVCO — GNSS & Space Weather  
-https://www.unavco.org/instrumentation/geodetic-gnss/gnss-and-space-weather
+📖 Reference:
+EarthScope Consortium — GNSS Resources
+https://www.earthscope.org
 
 **Analogy:**  
 Static surveying is like taking multiple measurements and averaging them. If the measuring stick itself keeps changing length, the average becomes less reliable.
@@ -140,7 +140,7 @@ Submitting OPUS data during severe space weather is like sending blurred photos 
 
 ## 🌞 Why Long Occupation Helps
 
-Extending observation time improves the ability to average out short-term disturbances.
+Extending observation time provides more satellite geometry diversity and strengthens ambiguity resolution, helping mitigate short-term disturbances.
 
 Benefits of longer occupations:
 
@@ -150,9 +150,9 @@ Benefits of longer occupations:
 
 However, during major storms, even long sessions may not fully compensate.
 
-📖 Reference:  
-UNAVCO Static Survey Guidance  
-https://www.unavco.org
+📖 Reference:
+EarthScope Consortium — GNSS Data & Resources
+https://www.earthscope.org
 
 **Analogy:**  
 It’s like averaging many noisy measurements to find the true value. The more samples you collect, the better the estimate — unless the noise remains extreme.
@@ -180,9 +180,9 @@ RTK is a sprint that demands perfect footing. Static surveying is a marathon —
 
 Monitoring geomagnetic activity allows scheduling surveys during quiet periods.
 
-📖 Reference:  
-NOAA SWPC Forecasts  
-https://www.swpc.noaa.gov/communities/space-weather-enthusiasts
+📖 Reference:
+NOAA SWPC — Space Weather Enthusiasts Dashboard
+https://www.swpc.noaa.gov/communities/space-weather-enthusiasts-dashboard
 
 ---
 
@@ -206,7 +206,7 @@ Ground control points or independent checks help detect anomalies.
 
 ### ✔ Avoid Critical Work During Storms
 
-If KP ≥ 6 or significant ionospheric disturbance is forecast, consider postponement.
+If Kp ≥ 5 (NOAA G1 storm threshold) or significant ionospheric disturbance is forecast, consider postponement — particularly for RTK work.
 
 ---
 
@@ -230,9 +230,9 @@ Planning a survey without checking space weather is like pouring concrete withou
 
 - NOAA Space Weather Prediction Center: https://www.swpc.noaa.gov  
 - NOAA NGS OPUS Service: https://www.ngs.noaa.gov/OPUS/  
-- UNAVCO GNSS Resources: https://www.unavco.org  
-- International GNSS Service: https://igs.org  
-- Natural Resources Canada PPP Service: https://webapp.csrs-scrs.nrcan-rncan.gc.ca
+- EarthScope Consortium: https://www.earthscope.org
+- International GNSS Service: https://igs.org
+- Natural Resources Canada PPP Service: https://webapp.csrs-scrs.nrcan-rncan.gc.ca/geod/tools-outils/ppp.php
 
 ---
 

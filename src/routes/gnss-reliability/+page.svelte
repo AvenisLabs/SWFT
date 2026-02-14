@@ -1,4 +1,4 @@
-<!-- +page.svelte v0.6.0 — GNSS Reliability Knowledge Hub landing page -->
+<!-- +page.svelte v0.10.0 — GNSS Reliability Knowledge Hub landing page -->
 
 <svelte:head>
 	<title>GNSS Reliability Guide — SWFT</title>
@@ -39,18 +39,22 @@
 				</a>
 			</li>
 			<li class="article-item">
-				<div class="article-link">
-					<span class="article-title">Solar Flares vs Geomagnetic Storms</span>
+				<a href="/gnss-reliability/solar-flares-vs-storms" class="article-link live">
+					<span class="article-title">Solar Flares vs Geomagnetic Storms <span class="badge-live">Read now &rarr;</span></span>
 					<span class="article-desc">Two distinct phenomena with different timelines, causes, and impacts on GNSS receivers.</span>
-					<span class="coming-soon">Coming soon</span>
-				</div>
+				</a>
 			</li>
 			<li class="article-item">
-				<div class="article-link">
-					<span class="article-title">What Is Ionospheric Delay?</span>
+				<a href="/gnss-reliability/ionospheric-delay" class="article-link live">
+					<span class="article-title">What Is Ionospheric Delay? <span class="badge-live">Read now &rarr;</span></span>
 					<span class="article-desc">How charged particles in the ionosphere bend and slow satellite signals, introducing positioning errors.</span>
-					<span class="coming-soon">Coming soon</span>
-				</div>
+				</a>
+			</li>
+			<li class="article-item">
+				<a href="/gnss-reliability/glossary" class="article-link live">
+					<span class="article-title">GNSS Space Weather Glossary <span class="badge-live">Read now &rarr;</span></span>
+					<span class="article-desc">Key terms explained: scintillation, ionospheric delay, cycle slips, TEC, and the Kp index.</span>
+				</a>
 			</li>
 		</ul>
 	</section>
@@ -114,11 +118,10 @@
 		</h2>
 		<ul class="article-list">
 			<li class="article-item">
-				<div class="article-link">
-					<span class="article-title">How Space Weather Ruins GNSS Surveys</span>
+				<a href="/gnss-reliability/space-weather-gnss-survey" class="article-link live">
+					<span class="article-title">How Space Weather Ruins GNSS Surveys <span class="badge-live">Read now &rarr;</span></span>
 					<span class="article-desc">When ionospheric conditions degrade beyond correction model limits, survey accuracy collapses.</span>
-					<span class="coming-soon">Coming soon</span>
-				</div>
+				</a>
 			</li>
 			<li class="article-item">
 				<a href="/gnss-reliability/opus-ppp-failures" class="article-link live">

@@ -1,4 +1,4 @@
-<!-- +page.svelte v0.1.0 — Why Your OPUS or PPP Solution Failed Today (Space Weather Edition) -->
+<!-- +page.svelte v0.2.0 — Why Your OPUS or PPP Solution Failed Today (Space Weather Edition) -->
 <script>
 	import ExtLink from '$lib/components/ExtLink.svelte';
 </script>
@@ -27,7 +27,7 @@
 				If a GNSS dataset that normally processes cleanly suddenly fails &mdash; or produces poor results &mdash; space weather may be the cause.
 			</p>
 			<p>
-				Services such as OPUS and PPP rely on precise satellite measurements and stable atmospheric conditions. During geomagnetic disturbances, the ionosphere becomes irregular, introducing errors that processing algorithms cannot fully model.
+				Services such as OPUS and PPP rely on precise satellite measurements and stable atmospheric conditions. During geomagnetic disturbances, the <a href="/gnss-reliability/ionospheric-delay">ionosphere becomes irregular</a>, introducing errors that processing algorithms cannot fully model.
 			</p>
 			<p>
 				The data itself may be degraded before it even reaches the processing service.
@@ -172,7 +172,7 @@
 				<li>Kp Index</li>
 				<li>Solar X-ray flux</li>
 				<li>Geomagnetic storm alerts</li>
-				<li>Scintillation reports</li>
+				<li><a href="/gnss-reliability/glossary#scintillation">Scintillation</a> reports</li>
 			</ul>
 			<p class="reference">
 				<ExtLink href="https://www.swpc.noaa.gov/products">NOAA SWPC Data Products</ExtLink>

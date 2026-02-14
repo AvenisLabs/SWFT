@@ -38,9 +38,9 @@ A geomagnetic storm is like a prolonged thunderstorm that reshapes the environme
 
 A solar flare is a sudden release of energy from the Sun’s surface that produces intense bursts of X-rays and ultraviolet radiation. These emissions travel at the speed of light and reach Earth in about 8 minutes.
 
-📖 Reference:  
-NASA — Solar Flares  
-https://science.nasa.gov/heliophysics/focus-areas/solar-flares/
+📖 Reference:
+NASA — Solar Storms and Flares
+https://science.nasa.gov/sun/solar-storms-and-flares/
 
 When this radiation hits Earth, it increases ionization in the upper atmosphere almost instantly.
 
@@ -52,7 +52,7 @@ When this radiation hits Earth, it increases ionization in the upper atmosphere 
 - HF radio blackouts (more severe than GNSS effects)
 
 📖 Reference:  
-NOAA SWPC — Solar Radiation Storms & Radio Blackouts  
+NOAA SWPC — Solar Flares & Radio Blackouts
 https://www.swpc.noaa.gov/phenomena/solar-flares-radio-blackouts
 
 **Analogy:**  
@@ -64,11 +64,11 @@ Imagine suddenly turning on a powerful spotlight in a dark room. Your eyes need 
 
 A geomagnetic storm occurs when a coronal mass ejection (CME) — a massive cloud of magnetized plasma from the Sun — collides with Earth’s magnetosphere.
 
-Unlike solar flares, CMEs take **15 hours to several days** to arrive.
+Unlike solar flares, CMEs typically take **1–3 days** to arrive, though the fastest events have reached Earth in as little as 15–18 hours.
 
-📖 Reference:  
-NASA — Coronal Mass Ejections  
-https://science.nasa.gov/heliophysics/focus-areas/coronal-mass-ejections/
+📖 Reference:
+NASA — Solar Storms and Flares
+https://science.nasa.gov/sun/solar-storms-and-flares/
 
 When the CME interacts with Earth’s magnetic field, it injects energy into the magnetosphere and ionosphere, creating large-scale disturbances.
 
@@ -100,9 +100,9 @@ This leads to:
 - Longer PPP convergence  
 - Satellite tracking issues  
 
-📖 Reference:  
-ESA Space Weather Service — GNSS Effects  
-https://swe.ssa.esa.int/gnss-effects
+📖 Reference:
+ESA Space Weather Service Network
+https://swe.ssa.esa.int
 
 **Analogy:**  
 Solar flares briefly shake the system. Geomagnetic storms rearrange the terrain the signals travel through.
@@ -113,12 +113,12 @@ Solar flares briefly shake the system. Geomagnetic storms rearrange the terrain 
 
 | Feature | Solar Flare | Geomagnetic Storm |
 |----------|-------------|-------------------|
-| Arrival Time | ~8 minutes | 15 hours to several days |
+| Arrival Time | ~8 minutes | 1–3 days (fastest: ~15 hours) |
 | Cause | Radiation burst | CME plasma cloud |
 | Duration | Minutes to hours | Hours to days |
 | Main Impact | Sudden ionization | Large-scale turbulence |
 | GNSS Risk | Moderate, short-term | High, sustained |
-| Predictability | Minimal warning | Often forecastable |
+| Predictability | ~8 min from detection to impact | Often forecastable |
 
 📖 Reference:  
 NOAA Space Weather Scales Explanation  
@@ -145,11 +145,11 @@ Operations often remain viable unless the flare is extreme.
 - Reduced survey reliability  
 - Possible mission delays  
 
-Strong storms (KP ≥ 6) significantly increase operational risk.
+Geomagnetic storm conditions begin at Kp 5 (NOAA G1), with significant operational risk for precision GNSS at Kp ≥ 5.
 
-📖 Reference:  
-International GNSS Service — Space Weather Effects  
-https://igs.org/wg/space-weather/
+📖 Reference:
+NOAA Space Weather Scales
+https://www.swpc.noaa.gov/noaa-scales-explanation
 
 **Analogy:**  
 Flying during a flare is like encountering a sudden gust of wind. Flying during a geomagnetic storm is like operating in sustained turbulence.
@@ -162,9 +162,9 @@ Solar flares can cause radio blackouts by increasing ionization in the D-layer o
 
 GNSS operates at higher frequencies and is less affected, but severe events can still degrade performance.
 
-📖 Reference:  
-NOAA SWPC — Radio Blackouts  
-https://www.swpc.noaa.gov/phenomena/radio-blackouts
+📖 Reference:
+NOAA SWPC — Solar Flares & Radio Blackouts
+https://www.swpc.noaa.gov/phenomena/solar-flares-radio-blackouts
 
 **Analogy:**  
 It’s like thick fog that blocks low-beam headlights but still lets high beams through — not perfect, but usable.

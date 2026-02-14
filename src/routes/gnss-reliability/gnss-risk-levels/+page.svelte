@@ -1,29 +1,6 @@
-<!-- +page.svelte v0.1.0 — GNSS Risk Levels for Drone & Survey Operations -->
+<!-- +page.svelte v0.3.0 — GNSS Risk Levels for Drone & Survey Operations -->
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import ExtLink from '$lib/components/ExtLink.svelte';
-	import { fetchApi } from '$lib/stores/dashboard';
-	import type { KpSummary, GnssRiskResult } from '$types/api';
-
-	// Live space weather state (client-only)
-	let kp = $state<KpSummary | null>(null);
-	let risk = $state<GnssRiskResult | null>(null);
-	let widgetReady = $state(false);
-
-	onMount(async () => {
-		const [kpData, riskData] = await Promise.all([
-			fetchApi<KpSummary>('/api/v1/kp/summary'),
-			fetchApi<GnssRiskResult>('/api/v1/gnss/risk'),
-		]);
-		if (kpData) kp = kpData;
-		if (riskData) risk = riskData;
-		widgetReady = true;
-	});
-
-	// Map risk level to CSS color class
-	const riskColor = $derived(
-		risk ? ({ Low: 'green', Moderate: 'yellow', High: 'orange', Severe: 'red', Extreme: 'red' } as Record<string, string>)[risk.level] ?? 'green' : 'green'
-	);
 </script>
 
 <svelte:head>
@@ -43,36 +20,13 @@
 			<p class="subtitle">A practical risk framework for mission planning based on the Kp index, scintillation, and geomagnetic conditions</p>
 		</header>
 
-		<!-- Live space weather compact banner -->
-		<a href="/gnss" class="weather-banner" class:loaded={widgetReady}>
-			{#if widgetReady && kp && risk}
-				<div class="wb-item">
-					<span class="wb-label">Kp Index</span>
-					<span class="wb-value kp-{Math.floor(kp.current_kp)}">{kp.current_kp}</span>
-				</div>
-				<div class="wb-item">
-					<span class="wb-label">Trend</span>
-					<span class="wb-value">{kp.trend === 'rising' ? '\u2191' : kp.trend === 'falling' ? '\u2193' : '\u2192'} {kp.status_label}</span>
-				</div>
-				<div class="wb-item">
-					<span class="wb-label">GNSS Risk</span>
-					<span class="wb-value risk-{riskColor}">{risk.level} ({risk.score}/100)</span>
-				</div>
-				<div class="wb-advisory">{risk.advisory}</div>
-				<span class="wb-cta">View full assessment &rarr;</span>
-			{:else if widgetReady}
-				<span class="wb-offline">Live conditions unavailable</span>
-				<span class="wb-cta">View GNSS page &rarr;</span>
-			{:else}
-				<span class="wb-loading">Loading current conditions&hellip;</span>
-			{/if}
-		</a>
+
 
 		<!-- Overview -->
 		<section class="article-section">
 			<h2>Overview</h2>
 			<p>
-				GNSS performance depends heavily on space weather conditions, particularly geomagnetic activity and ionospheric stability. While satellites themselves continue operating during solar events, the atmosphere signals travel through can become highly disturbed.
+				GNSS performance depends heavily on space weather conditions, particularly geomagnetic activity and <a href="/gnss-reliability/ionospheric-delay">ionospheric stability</a>. While satellites themselves continue operating during solar events, the atmosphere signals travel through can become highly disturbed.
 			</p>
 			<p>
 				This page provides a practical risk framework for drone and survey operations based primarily on the <strong>Kp Index</strong>, along with expected scintillation risk and operational impact.
@@ -247,7 +201,7 @@
 		<section class="article-section">
 			<h2>Drone RTK vs Static Survey Sensitivity</h2>
 			<p>
-				RTK workflows are typically affected first because they rely on continuous carrier-phase tracking. Static surveys are more resilient due to long observation periods but can still produce degraded results during severe space weather events.
+				RTK workflows are typically affected first because they rely on continuous carrier-phase tracking. See <a href="/gnss-reliability/rtk-float-drops">why RTK drops to FLOAT</a> for details. Static surveys are more resilient due to long observation periods but can still produce degraded results during severe space weather events.
 			</p>
 			<div class="table-wrapper">
 				<table>
@@ -290,7 +244,7 @@
 		<section class="article-section">
 			<h2>Scintillation: The Hidden Hazard</h2>
 			<p>
-				Ionospheric scintillation causes rapid fluctuations in signal strength and phase, leading to tracking errors and loss of lock.
+				Ionospheric <a href="/gnss-reliability/glossary#scintillation">scintillation</a> causes rapid fluctuations in signal strength and phase, leading to tracking errors and loss of lock.
 			</p>
 			<p class="reference">
 				<ExtLink href="https://www.swpc.noaa.gov/phenomena/ionospheric-scintillation">NOAA SWPC — Ionospheric Scintillation</ExtLink>
@@ -406,80 +360,6 @@
 		font-size: var(--font-size-2xl);
 		line-height: 1.2;
 		margin-bottom: var(--space-sm);
-	}
-
-	/* Live weather banner */
-	.weather-banner {
-		display: flex;
-		flex-wrap: wrap;
-		align-items: center;
-		gap: var(--space-md);
-		padding: var(--space-md) var(--space-lg);
-		margin-bottom: var(--space-xl);
-		background: var(--bg-card);
-		border: 1px solid var(--border-default);
-		border-radius: var(--border-radius);
-		text-decoration: none;
-		color: inherit;
-		transition: border-color 0.2s;
-		min-height: 52px;
-	}
-
-	.weather-banner:hover {
-		border-color: var(--accent-blue);
-		text-decoration: none;
-	}
-
-	.wb-item {
-		display: flex;
-		flex-direction: column;
-		gap: 2px;
-	}
-
-	.wb-label {
-		font-size: 0.65rem;
-		font-weight: 600;
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
-		color: var(--text-muted);
-	}
-
-	.wb-value {
-		font-size: var(--font-size-sm);
-		font-weight: 600;
-		color: var(--text-primary);
-	}
-
-	/* Kp value colors */
-	.kp-0, .kp-1, .kp-2 { color: var(--severity-green, #4ade80); }
-	.kp-3, .kp-4 { color: var(--severity-yellow, #facc15); }
-	.kp-5 { color: var(--severity-orange, #fb923c); }
-	.kp-6, .kp-7 { color: var(--severity-red, #f87171); }
-	.kp-8, .kp-9 { color: #dc2626; }
-
-	/* Risk level colors */
-	.risk-green { color: var(--severity-green, #4ade80); }
-	.risk-yellow { color: var(--severity-yellow, #facc15); }
-	.risk-orange { color: var(--severity-orange, #fb923c); }
-	.risk-red { color: var(--severity-red, #f87171); }
-
-	.wb-advisory {
-		flex: 1 1 100%;
-		font-size: 0.8rem;
-		color: var(--text-secondary);
-		line-height: 1.4;
-	}
-
-	.wb-cta {
-		font-size: 0.75rem;
-		color: var(--accent-blue);
-		font-weight: 600;
-		margin-left: auto;
-	}
-
-	.wb-loading, .wb-offline {
-		font-size: 0.8rem;
-		color: var(--text-muted);
 	}
 
 	/* Article sections */
@@ -706,9 +586,5 @@
 			font-size: 0.8rem;
 		}
 
-		.weather-banner {
-			padding: var(--space-sm) var(--space-md);
-			gap: var(--space-sm);
-		}
 	}
 </style>

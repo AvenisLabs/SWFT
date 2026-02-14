@@ -1,4 +1,4 @@
-<!-- +page.svelte v0.3.0 — Pillar article: How Space Weather Affects GPS, RTK, and Survey Accuracy -->
+<!-- +page.svelte v0.4.0 — Pillar article: How Space Weather Affects GPS, RTK, and Survey Accuracy -->
 <script>
 	import ExtLink from '$lib/components/ExtLink.svelte';
 </script>
@@ -39,7 +39,7 @@
 		<section class="article-section">
 			<h2>The Key Problem: The Ionosphere</h2>
 			<p>
-				The ionosphere is a region of the upper atmosphere filled with charged particles created by solar radiation. GNSS signals must pass through it before reaching Earth's surface.
+				The <a href="/gnss-reliability/ionospheric-delay">ionosphere</a> is a region of the upper atmosphere filled with charged particles created by solar radiation. GNSS signals must pass through it before reaching Earth's surface.
 			</p>
 			<p>
 				When solar activity increases, the ionosphere becomes turbulent and irregular. This introduces errors that GNSS correction systems cannot always fully compensate for.
@@ -47,8 +47,8 @@
 			<h3>Primary effects include:</h3>
 			<ul class="effect-list">
 				<li>Increased signal delay</li>
-				<li>Rapid signal fluctuations (scintillation)</li>
-				<li>Loss of signal lock (cycle slips)</li>
+				<li>Rapid signal fluctuations (<a href="/gnss-reliability/glossary#scintillation">scintillation</a>)</li>
+				<li>Loss of signal lock (<a href="/gnss-reliability/glossary#cycle-slip">cycle slips</a>)</li>
 				<li>Reduced satellite availability</li>
 			</ul>
 			<p class="reference">
@@ -117,7 +117,7 @@
 			</p>
 			<h3>This leads to:</h3>
 			<ul class="effect-list">
-				<li>FIX &rarr; FLOAT transitions</li>
+				<li><a href="/gnss-reliability/rtk-float-drops">FIX &rarr; FLOAT transitions</a></li>
 				<li>Longer initialization times</li>
 				<li>Loss of integer ambiguity resolution</li>
 			</ul>
@@ -174,7 +174,7 @@
 
 		<!-- Solar Flares vs Geomagnetic Storms -->
 		<section class="article-section">
-			<h2>Solar Flares vs Geomagnetic Storms</h2>
+			<h2><a href="/gnss-reliability/solar-flares-vs-storms">Solar Flares vs Geomagnetic Storms</a></h2>
 			<div class="table-wrapper">
 				<table>
 					<thead>
@@ -219,7 +219,7 @@
 				<li>Space weather primarily distorts the medium signals travel through — though extreme events can also affect satellite hardware directly</li>
 				<li>RTK systems are most vulnerable</li>
 				<li>Static GNSS is more resilient but slower to stabilize</li>
-				<li>Monitoring space weather is part of mission planning</li>
+				<li>Monitoring space weather is part of mission planning &mdash; check <a href="/gnss-reliability/gnss-risk-levels">GNSS risk levels</a> before fieldwork</li>
 			</ul>
 			<aside class="analogy">
 				<span class="analogy-label">Analogy</span>

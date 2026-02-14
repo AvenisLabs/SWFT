@@ -1,5 +1,127 @@
 # SWPC-Web Summary Log
 
+## 2026-02-14 23:26 — Remove live weather banner from Knowledge Hub articles
+
+Removed the redundant live weather banner (Kp Index / Trend / GNSS Risk widget) from 4 Knowledge Hub article pages. The navbar already shows current and predicted Kp, making the in-article banner unnecessary.
+
+**Files changed (4):**
+- `gnss-risk-levels/+page.svelte` (v0.2.0 → v0.3.0)
+- `ionospheric-delay/+page.svelte` (v0.2.0 → v0.3.0)
+- `solar-flares-vs-storms/+page.svelte` (v0.2.0 → v0.3.0)
+- `space-weather-gnss-survey/+page.svelte` (v0.2.0 → v0.3.0)
+
+Removed from each: `onMount` API fetch logic, `kp`/`risk`/`widgetReady` state, `riskColor` derived, weather banner HTML, and all associated CSS (~75 lines per file). Unused imports (`onMount`, `fetchApi`, `KpSummary`, `GnssRiskResult`) also cleaned up.
+
+Build: 0 warnings. Tests: 46 passed. Deployed to Cloudflare Pages.
+
+## 2026-02-14 23:25 — Cross-link all 9 Knowledge Hub articles
+
+Implemented contextual in-body cross-links across all 9 live Knowledge Hub articles per the pillar article map linking strategy:
+
+1. **how-space-weather-affects-gps** (v0.3.0 → v0.4.0): 6 cross-links — ionosphere→ionospheric-delay, scintillation→glossary#scintillation, cycle slips→glossary#cycle-slip, FIX→FLOAT→rtk-float-drops, section heading→solar-flares-vs-storms, takeaway→gnss-risk-levels
+2. **gnss-risk-levels** (v0.1.0 → v0.2.0): 3 cross-links — ionospheric stability→ionospheric-delay, RTK affected first→rtk-float-drops, scintillation→glossary#scintillation
+3. **rtk-float-drops** (v0.3.0 → v0.4.0): 3 cross-links — ionosphere→ionospheric-delay, scintillation→glossary#scintillation, monitoring→gnss-risk-levels
+4. **solar-flares-vs-storms** (v0.1.0 → v0.2.0): 4 cross-links — scintillation→glossary#scintillation, cycle slips→glossary#cycle-slip, RTK FIX instability→rtk-float-drops, Kp 5→gnss-risk-levels
+5. **space-weather-gnss-survey** (v0.1.0 → v0.2.0): 4 cross-links — delays→ionospheric-delay, cycle slips→glossary#cycle-slip, FIX→FLOAT→rtk-float-drops, Kp≥5→gnss-risk-levels
+6. **ionospheric-delay** (v0.1.0 → v0.2.0): 4 cross-links — RTK reliability→rtk-float-drops, PPP delays→opus-ppp-failures, solar events→solar-flares-vs-storms, monitoring→gnss-risk-levels
+7. **glossary** (v0.1.0 → v0.2.0): 3 cross-links — FIX to FLOAT→rtk-float-drops, ionospheric delay→ionospheric-delay, GNSS risk→gnss-risk-levels
+8. **dji-emlid-base-stations** (v0.1.0 → v0.2.0): 3 cross-links — ionosphere→ionospheric-delay, FIX drops to FLOAT→rtk-float-drops, scintillation→glossary#scintillation
+9. **opus-ppp-failures** (v0.1.0 → v0.2.0): 2 cross-links — ionosphere→ionospheric-delay, scintillation→glossary#scintillation
+
+Updated `Library/pillarmap.md` to reflect all links as implemented.
+
+Build: 0 warnings. Tests: 46 passed. Deployed to Cloudflare Pages.
+
+## 2026-02-14 23:22 — Update Pillar Article Map (internal documentation)
+
+Updated `Library/pillarmap.md` to reflect current site state:
+- Added actual route paths for all 9 live articles
+- Added status indicators (LIVE / COMING SOON / UNPROCESSED) for each entry
+- Documented current internal cross-linking state — most articles only have breadcrumb/footer nav; only `dji-emlid-base-stations` and `opus-ppp-failures` have in-body cross-links
+- Added "Remaining Work" section: KP Index article to build, cross-linking pass needed across all 9 articles
+- Replaced emoji-heavy formatting with clean tables and structured metadata
+- Updated brand reference to SWFT
+
+## 2026-02-14 23:12 — Add "What Is Ionospheric Delay?" to Knowledge Hub
+
+Built new Knowledge Hub article page at `/gnss-reliability/ionospheric-delay` from Library content brief:
+
+1. **New Svelte page** (`+page.svelte` v0.1.0): 10 sections — overview, ionosphere formation, GNSS signal effects (group delay + refraction), timing-to-position error, dual-band frequency correction, solar activity amplification, TEC, real-world drone/survey effects, why it can't be eliminated, key takeaways. Live weather banner, ExtLink references, analogy callouts throughout.
+2. **6 broken links fixed:**
+   - `science.nasa.gov/earth/atmosphere/ionosphere` (404) → NOAA SWPC ionosphere page
+   - `unavco.org/education/.../gnss-and-ionosphere.html` (404) → removed (redundant)
+   - `navipedia/index.php/Ionosphere` (404) → `Ionospheric_Delay` (verified live)
+   - `swpc.noaa.gov/impacts/gps-systems` (generic) → `ionospheric-impacts-space-weather`
+   - `gps.gov/.../accuracy/` (404) → EarthScope precision GPS
+   - `unavco.org/.../gnss-and-space-weather` (404) → EarthScope precision GPS
+   - `igs.org/wg/space-weather/` (404) → `igs.org` (home — no WG page exists)
+3. **3 UNAVCO → EarthScope** label updates (2 in-article + 1 authoritative resources)
+4. **Dual-frequency analogy replaced:** colored lenses → "two runners on the same course — one slows more in mud" (better conveys frequency-dependent delay measurement)
+5. **ChatGPT `contentReference[oaicite:N]` artifacts** cleaned from updated source file
+6. **All claims verified accurate** — 1 ns ≈ 30 cm confirmed, dual-frequency >99% conservative (literature: 99.9%), ionosphere altitude range acceptable
+7. **Hub updated** (v0.10.0): "What Is Ionospheric Delay?" converted from coming-soon to live entry
+8. Source markdown moved to `Library/completed/`.
+
+Build: 0 warnings. Tests: 46 passed. Deployed to Cloudflare Pages.
+
+## 2026-02-14 22:49 — Add "GNSS Space Weather Glossary" to Knowledge Hub
+
+Built new Knowledge Hub glossary page at `/gnss-reliability/glossary` from Library content brief:
+
+1. **New Svelte page** (`+page.svelte` v0.1.0): 7 sections — overview with quick-nav jump links, 5 glossary term entries (scintillation, ionospheric delay, cycle slip, TEC, Kp index), connecting concepts section. Each term in a card-style container with technical definition, practical meaning, why it matters, and analogy callout.
+2. **1 broken link fixed:** Navipedia Cycle_Slips (404) → `Carrier_Phase_Cycle-Slip_Detection`
+3. **1 outdated label fixed:** "UNAVCO GNSS Resources" → "EarthScope Consortium" at `earthscope.org`
+4. **1 analogy improved:** Highway analogy cycle slip mapping: "lost vehicles leaving the route" → "cars that exit and re-enter with a scrambled odometer" (better reflects tracking disruption vs permanent loss)
+5. **All definitions and claims verified** — all accurate against NOAA/ESA/Navipedia sources.
+6. **Hub updated** (v0.9.0): "GNSS Space Weather Glossary" added as live entry in GNSS & Space Weather Basics section.
+7. Source markdown moved to `Library/completed/`.
+
+Deployed to Cloudflare Pages.
+
+## 2026-02-14 22:39 — Add "How Space Weather Can Ruin a GNSS Survey" article to Knowledge Hub
+
+Built new Knowledge Hub article at `/gnss-reliability/space-weather-gnss-survey` from Library content brief:
+
+1. **New Svelte page** (`+page.svelte` v0.1.0): 10 sections — overview, why space weather affects accuracy, RTK vulnerability, static surveys, PPP convergence, OPUS failures, long occupation benefits, risk comparison table, mitigation strategies (card grid), key takeaways. Live weather banner with Kp/risk widget.
+2. **4 broken links fixed:**
+   - ESA GNSS effects (404) → `swe.ssa.esa.int/ionospheric-weather`
+   - IGS space-weather WG (404) → `igs.org/rts/` (Real-Time Service)
+   - UNAVCO GNSS & Space Weather (404) → `earthscope.org`
+   - SWPC enthusiasts (404) → `swpc.noaa.gov/communities/space-weather-enthusiasts-dashboard`
+3. **2 label mismatches fixed:** "Ionospheric Impacts" → "Space Weather Impacts"; "UNAVCO Static Survey Guidance" → "EarthScope Consortium"
+4. **1 redirect fixed:** NRCan root URL → direct PPP tool URL
+5. **3 claim corrections:**
+   - Equipment quality: added nuance ("helps but cannot eliminate")
+   - Static surveys: replaced "average observations" with accurate "leverage changing satellite geometry for ambiguity resolution"
+   - Kp threshold: "Kp >= 6" → "Kp >= 5 (NOAA G1 storm threshold)"
+6. **All 9 analogies validated** — consistent and appropriate, no changes needed.
+7. **Hub updated** (v0.8.0): "How Space Weather Ruins GNSS Surveys" now live in For Surveyors section.
+8. Source markdown moved to `Library/completed/`.
+
+Deployed to Cloudflare Pages.
+
+## 2026-02-14 22:29 — Add "Solar Flares vs Geomagnetic Storms" article to Knowledge Hub
+
+Built new Knowledge Hub article at `/gnss-reliability/solar-flares-vs-storms` from Library content brief:
+
+1. **New Svelte page** (`+page.svelte` v0.1.0): 8 sections — overview, solar flares, geomagnetic storms, why storms affect GPS more, comparison table, real-world drone impact, radio blackouts, key takeaways. Live weather banner with Kp/risk widget.
+2. **5 broken links fixed:**
+   - NASA solar flares (404) → `science.nasa.gov/sun/solar-storms-and-flares/`
+   - NASA CMEs (404) → same NASA storms page
+   - ESA GNSS effects (404) → `swe.ssa.esa.int` (portal home)
+   - IGS space-weather WG (404) → replaced with NOAA Scales reference
+   - SWPC radio-blackouts (redirect) → `swpc.noaa.gov/phenomena/solar-flares-radio-blackouts`
+3. **1 label mismatch fixed:** "Solar Radiation Storms & Radio Blackouts" → "Solar Flares & Radio Blackouts"
+4. **3 claim corrections:**
+   - CME travel time: "15 hours to several days" → "1–3 days (fastest: ~15 hours)"
+   - Flare predictability: "Minimal warning" → "~8 min from detection to impact"
+   - Kp threshold: "Kp >= 6" → "Kp 5 (NOAA G1)" to match official NOAA scale
+5. **All 7 analogies validated** — consistent and appropriate for target audience, no changes needed.
+6. **Hub updated** (v0.7.0): "Solar Flares vs Geomagnetic Storms" now live in GNSS & Space Weather Basics section.
+7. Source markdown moved to `Library/completed/`.
+
+Deployed to Cloudflare Pages.
+
 ## 2026-02-14 00:10 — Add DJI/Emlid/Base Stations article to Knowledge Hub
 
 Created new Knowledge Hub article at `/gnss-reliability/dji-emlid-base-stations`:
