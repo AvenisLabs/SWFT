@@ -1,4 +1,4 @@
-<!-- +layout.svelte v0.1.0 — Admin section layout with sub-navigation -->
+<!-- +layout.svelte v0.2.0 — Admin section layout with sub-navigation -->
 <script>
 	import { page } from '$app/stores';
 	let { children } = $props();
@@ -7,6 +7,7 @@
 		{ href: '/admin', label: 'Dashboard' },
 		{ href: '/admin/links', label: 'Links' },
 		{ href: '/admin/link-checks', label: 'Check History' },
+		{ href: '/admin/kp-source', label: 'Kp Source' },
 	];
 </script>
 

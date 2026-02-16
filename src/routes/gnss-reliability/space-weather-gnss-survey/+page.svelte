@@ -1,4 +1,4 @@
-<!-- +page.svelte v0.3.0 — How Space Weather Can Ruin a GNSS Survey -->
+<!-- +page.svelte v0.4.0 — How Space Weather Can Ruin a GNSS Survey -->
 <script lang="ts">
 	import ExtLink from '$lib/components/ExtLink.svelte';
 </script>
@@ -122,7 +122,7 @@
 				<li>Solutions may remain unstable</li>
 			</ul>
 			<p class="reference">
-				<ExtLink href="https://webapp.csrs-scrs.nrcan-rncan.gc.ca/geod/tools-outils/ppp.php">Natural Resources Canada &mdash; PPP Service</ExtLink>
+				<ExtLink href="https://natural-resources.canada.ca/science-data/science-research/geomatics/geodetic-reference-systems/canadian-spatial-reference-system-csrs">Natural Resources Canada &mdash; CSRS-PPP</ExtLink>
 			</p>
 			<p class="reference">
 				<ExtLink href="https://igs.org/rts/">IGS Real-Time Service Documentation</ExtLink>
@@ -287,7 +287,7 @@
 				<li><ExtLink href="https://www.ngs.noaa.gov/OPUS/">NOAA NGS OPUS Service</ExtLink></li>
 				<li><ExtLink href="https://www.earthscope.org">EarthScope Consortium</ExtLink></li>
 				<li><ExtLink href="https://igs.org">International GNSS Service</ExtLink></li>
-				<li><ExtLink href="https://webapp.csrs-scrs.nrcan-rncan.gc.ca/geod/tools-outils/ppp.php">Natural Resources Canada PPP Service</ExtLink></li>
+				<li><ExtLink href="https://natural-resources.canada.ca/science-data/science-research/geomatics/geodetic-reference-systems/canadian-spatial-reference-system-csrs">Natural Resources Canada CSRS-PPP</ExtLink></li>
 			</ul>
 		</section>
 

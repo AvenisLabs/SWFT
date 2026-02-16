@@ -1,4 +1,4 @@
-// api.ts v0.4.0 — API response contracts for /api/v1/* endpoints
+// api.ts v0.7.0 — API response contracts for /api/v1/* endpoints
 
 /** Standard envelope wrapping all API responses */
 export interface ApiResponse<T> {
@@ -27,6 +27,8 @@ export interface KpSummary {
 	recent: KpDataPoint[];
 	forecast_kp?: number;       // next 3-hour window predicted Kp
 	forecast_time?: string;     // start of that forecast window (ISO 8601)
+	data_source?: string;       // 'noaa' | 'noaa_boulder' | 'noaa_forecast' | 'gfz' | 'bom' — which feed is active (only set for non-primary)
+	data_source_label?: string; // Human-readable label of the active source (always set)
 }
 
 /** GET /api/v1/kp/estimated */
@@ -182,4 +184,29 @@ export interface LinkCheckResult {
 	response_time_ms: number | null;
 	found_on_pages: string;
 	checked_at: string;
+}
+
+/** GET /api/v1/kp/sources — Individual Kp data source status */
+export interface KpSourceData {
+	id: string;                // 'noaa_estimated' | 'noaa_boulder' | 'noaa_forecast' | 'gfz' | 'bom'
+	name: string;
+	agency: string;
+	country: string;
+	description: string;
+	resolution: string;        // e.g. '15-min (downsampled from 1-min)' or '3-hour'
+	dataType: string;          // e.g. 'Planetary Kp' or 'Local K-index'
+	url: string;               // source website URL
+	status: 'ok' | 'error' | 'stale';
+	error?: string;
+	latestKp: number | null;
+	latestTime: string | null;
+	points: KpEstimatedPoint[];
+	pointCount: number;
+}
+
+/** Aggregated result from all Kp sources */
+export interface KpSourcesResult {
+	sources: KpSourceData[];
+	activeSourceId: string;    // which source is currently driving the dashboard
+	fetchedAt: string;         // ISO 8601
 }

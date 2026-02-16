@@ -1,326 +1,250 @@
 # SWPC-Web Summary Log
 
-## 2026-02-14 23:38 — Add "When Should Drone Pilots Cancel Missions?" to Knowledge Hub
-
-Built new Knowledge Hub article page at `/gnss-reliability/drone-mission-cancel` from Library content brief:
-
-1. **New Svelte page** (`+page.svelte` v0.1.0): 10 sections — overview, key indicators (Kp/S-scale/scintillation/RTK), Kp thresholds table, when to cancel (4 red decision cards), when to postpone (3 yellow cards), when safe to fly (2 green cards), mapping mission considerations, go/mitigate/no-go framework (3-column grid), why waiting works, key takeaways + authoritative resources.
-2. **2 broken links fixed:**
-   - FAA GNSS Interference PDF (404) → FAA GNSS Interference Resource Guide page
-   - UNAVCO GNSS & Space Weather (404) → EarthScope Consortium
-3. **Kp thresholds tightened** (critical safety correction):
-   - GO: Kp ≤ 3 (was ≤ 3, unchanged)
-   - MITIGATE: Kp 4–5 (was 4–6, too permissive)
-   - NO-GO: Kp ≥ 6 (was ≥ 7, dangerously high for survey-grade work)
-   - Per GeoCue industry guidance and Andalsvik & Jacobsen 2014 research
-4. **Solar radiation storms reframed** — changed from "degrades satellite signals and electronics" (misleading for ground operators) to "proton events ionize the polar atmosphere, indirectly degrading GNSS signal quality through the ionosphere"
-5. **Kp ≤ 3 safety qualifier added** — equatorial scintillation, TIDs, and solar radio bursts can degrade GNSS independently of Kp
-6. **All 4 analogies validated** — all relevant to drone pilot audience, no replacements needed
-7. **Hub updated** (v0.11.0): "When Should Drone Pilots Cancel Missions?" converted from coming-soon to live entry. Removed unused `div.article-link` and `.coming-soon` CSS selectors (no more coming-soon entries).
-8. **Cross-links implemented**: gnss-risk-levels, ionospheric-delay, glossary#scintillation, rtk-float-drops, solar-flares-vs-storms
-9. Source markdown moved to `Library/completed/`.
-
-Build: 0 warnings. Tests: 46 passed. Deployed to Cloudflare Pages.
-
-## 2026-02-14 23:26 — Remove live weather banner from Knowledge Hub articles
-
-Removed the redundant live weather banner (Kp Index / Trend / GNSS Risk widget) from 4 Knowledge Hub article pages. The navbar already shows current and predicted Kp, making the in-article banner unnecessary.
-
-**Files changed (4):**
-- `gnss-risk-levels/+page.svelte` (v0.2.0 → v0.3.0)
-- `ionospheric-delay/+page.svelte` (v0.2.0 → v0.3.0)
-- `solar-flares-vs-storms/+page.svelte` (v0.2.0 → v0.3.0)
-- `space-weather-gnss-survey/+page.svelte` (v0.2.0 → v0.3.0)
-
-Removed from each: `onMount` API fetch logic, `kp`/`risk`/`widgetReady` state, `riskColor` derived, weather banner HTML, and all associated CSS (~75 lines per file). Unused imports (`onMount`, `fetchApi`, `KpSummary`, `GnssRiskResult`) also cleaned up.
-
-Build: 0 warnings. Tests: 46 passed. Deployed to Cloudflare Pages.
-
-## 2026-02-14 23:25 — Cross-link all 9 Knowledge Hub articles
-
-Implemented contextual in-body cross-links across all 9 live Knowledge Hub articles per the pillar article map linking strategy:
-
-1. **how-space-weather-affects-gps** (v0.3.0 → v0.4.0): 6 cross-links — ionosphere→ionospheric-delay, scintillation→glossary#scintillation, cycle slips→glossary#cycle-slip, FIX→FLOAT→rtk-float-drops, section heading→solar-flares-vs-storms, takeaway→gnss-risk-levels
-2. **gnss-risk-levels** (v0.1.0 → v0.2.0): 3 cross-links — ionospheric stability→ionospheric-delay, RTK affected first→rtk-float-drops, scintillation→glossary#scintillation
-3. **rtk-float-drops** (v0.3.0 → v0.4.0): 3 cross-links — ionosphere→ionospheric-delay, scintillation→glossary#scintillation, monitoring→gnss-risk-levels
-4. **solar-flares-vs-storms** (v0.1.0 → v0.2.0): 4 cross-links — scintillation→glossary#scintillation, cycle slips→glossary#cycle-slip, RTK FIX instability→rtk-float-drops, Kp 5→gnss-risk-levels
-5. **space-weather-gnss-survey** (v0.1.0 → v0.2.0): 4 cross-links — delays→ionospheric-delay, cycle slips→glossary#cycle-slip, FIX→FLOAT→rtk-float-drops, Kp≥5→gnss-risk-levels
-6. **ionospheric-delay** (v0.1.0 → v0.2.0): 4 cross-links — RTK reliability→rtk-float-drops, PPP delays→opus-ppp-failures, solar events→solar-flares-vs-storms, monitoring→gnss-risk-levels
-7. **glossary** (v0.1.0 → v0.2.0): 3 cross-links — FIX to FLOAT→rtk-float-drops, ionospheric delay→ionospheric-delay, GNSS risk→gnss-risk-levels
-8. **dji-emlid-base-stations** (v0.1.0 → v0.2.0): 3 cross-links — ionosphere→ionospheric-delay, FIX drops to FLOAT→rtk-float-drops, scintillation→glossary#scintillation
-9. **opus-ppp-failures** (v0.1.0 → v0.2.0): 2 cross-links — ionosphere→ionospheric-delay, scintillation→glossary#scintillation
-
-Updated `Library/pillarmap.md` to reflect all links as implemented.
-
-Build: 0 warnings. Tests: 46 passed. Deployed to Cloudflare Pages.
-
-## 2026-02-14 23:22 — Update Pillar Article Map (internal documentation)
-
-Updated `Library/pillarmap.md` to reflect current site state:
-- Added actual route paths for all 9 live articles
-- Added status indicators (LIVE / COMING SOON / UNPROCESSED) for each entry
-- Documented current internal cross-linking state — most articles only have breadcrumb/footer nav; only `dji-emlid-base-stations` and `opus-ppp-failures` have in-body cross-links
-- Added "Remaining Work" section: KP Index article to build, cross-linking pass needed across all 9 articles
-- Replaced emoji-heavy formatting with clean tables and structured metadata
-- Updated brand reference to SWFT
-
-## 2026-02-14 23:12 — Add "What Is Ionospheric Delay?" to Knowledge Hub
-
-Built new Knowledge Hub article page at `/gnss-reliability/ionospheric-delay` from Library content brief:
-
-1. **New Svelte page** (`+page.svelte` v0.1.0): 10 sections — overview, ionosphere formation, GNSS signal effects (group delay + refraction), timing-to-position error, dual-band frequency correction, solar activity amplification, TEC, real-world drone/survey effects, why it can't be eliminated, key takeaways. Live weather banner, ExtLink references, analogy callouts throughout.
-2. **6 broken links fixed:**
-   - `science.nasa.gov/earth/atmosphere/ionosphere` (404) → NOAA SWPC ionosphere page
-   - `unavco.org/education/.../gnss-and-ionosphere.html` (404) → removed (redundant)
-   - `navipedia/index.php/Ionosphere` (404) → `Ionospheric_Delay` (verified live)
-   - `swpc.noaa.gov/impacts/gps-systems` (generic) → `ionospheric-impacts-space-weather`
-   - `gps.gov/.../accuracy/` (404) → EarthScope precision GPS
-   - `unavco.org/.../gnss-and-space-weather` (404) → EarthScope precision GPS
-   - `igs.org/wg/space-weather/` (404) → `igs.org` (home — no WG page exists)
-3. **3 UNAVCO → EarthScope** label updates (2 in-article + 1 authoritative resources)
-4. **Dual-frequency analogy replaced:** colored lenses → "two runners on the same course — one slows more in mud" (better conveys frequency-dependent delay measurement)
-5. **ChatGPT `contentReference[oaicite:N]` artifacts** cleaned from updated source file
-6. **All claims verified accurate** — 1 ns ≈ 30 cm confirmed, dual-frequency >99% conservative (literature: 99.9%), ionosphere altitude range acceptable
-7. **Hub updated** (v0.10.0): "What Is Ionospheric Delay?" converted from coming-soon to live entry
-8. Source markdown moved to `Library/completed/`.
-
-Build: 0 warnings. Tests: 46 passed. Deployed to Cloudflare Pages.
-
-## 2026-02-14 22:49 — Add "GNSS Space Weather Glossary" to Knowledge Hub
-
-Built new Knowledge Hub glossary page at `/gnss-reliability/glossary` from Library content brief:
-
-1. **New Svelte page** (`+page.svelte` v0.1.0): 7 sections — overview with quick-nav jump links, 5 glossary term entries (scintillation, ionospheric delay, cycle slip, TEC, Kp index), connecting concepts section. Each term in a card-style container with technical definition, practical meaning, why it matters, and analogy callout.
-2. **1 broken link fixed:** Navipedia Cycle_Slips (404) → `Carrier_Phase_Cycle-Slip_Detection`
-3. **1 outdated label fixed:** "UNAVCO GNSS Resources" → "EarthScope Consortium" at `earthscope.org`
-4. **1 analogy improved:** Highway analogy cycle slip mapping: "lost vehicles leaving the route" → "cars that exit and re-enter with a scrambled odometer" (better reflects tracking disruption vs permanent loss)
-5. **All definitions and claims verified** — all accurate against NOAA/ESA/Navipedia sources.
-6. **Hub updated** (v0.9.0): "GNSS Space Weather Glossary" added as live entry in GNSS & Space Weather Basics section.
-7. Source markdown moved to `Library/completed/`.
+## 2026-02-16 19:45 — Add BoM 5th source, GFZ Hp30 upgrade, admin source control, homepage UI
 
-Deployed to Cloudflare Pages.
+Major multi-part update adding 5th fallback source, upgrading GFZ resolution, and improving source visibility:
 
-## 2026-02-14 22:39 — Add "How Space Weather Can Ruin a GNSS Survey" article to Knowledge Hub
+**1. Australian BoM as 5th fallback source:**
+- Added `fetchBomKp(apiKey)` to cron worker noaa-client.ts — POST-based JSON API
+- Added BoM to fallback chain: Boulder → NOAA Estimated → NOAA Forecast → GFZ Hp30 → BoM
+- Added BoM card to data-sources page with metadata
+- Requires free API key (user must register at `sws-data.sws.bom.gov.au/register`)
+- Added `BOM_API_KEY` to app.d.ts Platform env and cron worker Env interface
+
+**2. GFZ upgraded from 3-hour Kp to 30-min Hp30:**
+- Changed `index=Kp` → `index=Hp30` in both cron worker and kp-sources.ts
+- 6x more granular data from independent German source
+- Updated all metadata and labels
+
+**3. Admin source control page (`/admin/kp-source`):**
+- New API endpoint GET/POST `/api/v1/admin/kp-source` using cron_state table
+- Radio button UI to force specific source or leave on auto
+- Cron worker checks override before fallback chain, falls back to auto if forced source fails
 
-Built new Knowledge Hub article at `/gnss-reliability/space-weather-gnss-survey` from Library content brief:
+**4. Homepage UI changes:**
+- Removed "powered by NOAA data" from subtitle
+- Added blue source indicator line under KP chart title showing active data source
+- `data_source_label` always set on KpSummary (via KP_SOURCE_LABELS map)
+
+**5. Data accuracy hypothesis:**
+- Sudden Kp drops likely caused by magnetometer station dropout during GIC events
+- NOAA's 1-min estimated Kp nowcast algorithm collapses when upstream stations go offline
+
+Files changed: 17 modified + 2 new. Build clean, 57 tests pass. Deployed to CF Pages + cron worker.
 
-1. **New Svelte page** (`+page.svelte` v0.1.0): 10 sections — overview, why space weather affects accuracy, RTK vulnerability, static surveys, PPP convergence, OPUS failures, long occupation benefits, risk comparison table, mitigation strategies (card grid), key takeaways. Live weather banner with Kp/risk widget.
-2. **4 broken links fixed:**
-   - ESA GNSS effects (404) → `swe.ssa.esa.int/ionospheric-weather`
-   - IGS space-weather WG (404) → `igs.org/rts/` (Real-Time Service)
-   - UNAVCO GNSS & Space Weather (404) → `earthscope.org`
-   - SWPC enthusiasts (404) → `swpc.noaa.gov/communities/space-weather-enthusiasts-dashboard`
-3. **2 label mismatches fixed:** "Ionospheric Impacts" → "Space Weather Impacts"; "UNAVCO Static Survey Guidance" → "EarthScope Consortium"
-4. **1 redirect fixed:** NRCan root URL → direct PPP tool URL
-5. **3 claim corrections:**
-   - Equipment quality: added nuance ("helps but cannot eliminate")
-   - Static surveys: replaced "average observations" with accurate "leverage changing satellite geometry for ambiguity resolution"
-   - Kp threshold: "Kp >= 6" → "Kp >= 5 (NOAA G1 storm threshold)"
-6. **All 9 analogies validated** — consistent and appropriate, no changes needed.
-7. **Hub updated** (v0.8.0): "How Space Weather Ruins GNSS Surveys" now live in For Surveyors section.
-8. Source markdown moved to `Library/completed/`.
+## 2026-02-16 17:15 — Research Australian BOM Space Weather K-index API
+
+Researched the Australian Bureau of Meteorology Space Weather API at `sws-data.sws.bom.gov.au/api/v1/`. Key findings:
+- POST-based JSON API requiring a free API key (obtained via email registration)
+- `get-k-index` endpoint returns `{data: [{index, valid_time, analysis_time}]}` with K values 0-9
+- "Australian region" is a composite K-index (Kaus) from ~10 Australian magnetometer stations (Darwin, Canberra, Hobart, etc.) — a regional equivalent to global Kp but reflecting Southern Hemisphere mid-latitude conditions
+- Kaus estimated value updates every ~20 minutes; definitive K computed every 3 hours (8x daily)
+- 17 location options including individual stations and Antarctic sites
+- No documented rate limits; response capped at 10,000 elements
+- Date format: `YYYY-MM-DD HH:MM:SS` (UTC), omit start/end for latest value only
+
+## 2026-02-16 14:43 — Recalibrate GNSS risk model to align with Kp card
+
+The GNSS risk card contradicted the Kp card during storms — Kp 5.3 showed "Geomagnetic Storm" on the Kp card but only "Moderate" on the GNSS risk card. Three changes fix the misalignment:
+
+**1. Increased Kp raw scores** (gnss-risk.ts):
+- Kp 5 (G1): 55 → 65, Kp 6 (G2): 70 → 75, Kp 4: 35 → 40, Kp 3: 15 → 20
+- Added Kp 9 as separate tier (100) vs Kp 8 (95)
+
+**2. Rebalanced weights** (constants.ts):
+- Kp: 35% → 40% (primary ionospheric indicator)
+- R-Scale: 20% → 15%
+- Bz and Speed unchanged
+
+**3. Added Kp-based floor mechanism** (constants.ts + gnss-risk.ts):
+- G1 (Kp ≥5): minimum score 40 → High
+- G2 (Kp ≥6): minimum score 50 → High
+- G3 (Kp ≥7): minimum score 60 → Severe
+- G4 (Kp ≥8): minimum score 80 → Extreme
+- Active (Kp ≥4): minimum score 25 → Moderate
 
-Deployed to Cloudflare Pages.
+**Files modified**: gnss-risk.ts, constants.ts, gnss-risk.test.ts, +page.svelte (dashboard), /gnss/+page.svelte (methodology), KpGnssExplainer.svelte, CLAUDE.md
 
-## 2026-02-14 22:29 — Add "Solar Flares vs Geomagnetic Storms" article to Knowledge Hub
+**Tests**: 57 passing (40 GNSS risk + 17 alert classifier), including new floor-guarantee tests.
+**Deployed** to Cloudflare Pages.
 
-Built new Knowledge Hub article at `/gnss-reliability/solar-flares-vs-storms` from Library content brief:
-
-1. **New Svelte page** (`+page.svelte` v0.1.0): 8 sections — overview, solar flares, geomagnetic storms, why storms affect GPS more, comparison table, real-world drone impact, radio blackouts, key takeaways. Live weather banner with Kp/risk widget.
-2. **5 broken links fixed:**
-   - NASA solar flares (404) → `science.nasa.gov/sun/solar-storms-and-flares/`
-   - NASA CMEs (404) → same NASA storms page
-   - ESA GNSS effects (404) → `swe.ssa.esa.int` (portal home)
-   - IGS space-weather WG (404) → replaced with NOAA Scales reference
-   - SWPC radio-blackouts (redirect) → `swpc.noaa.gov/phenomena/solar-flares-radio-blackouts`
-3. **1 label mismatch fixed:** "Solar Radiation Storms & Radio Blackouts" → "Solar Flares & Radio Blackouts"
-4. **3 claim corrections:**
-   - CME travel time: "15 hours to several days" → "1–3 days (fastest: ~15 hours)"
-   - Flare predictability: "Minimal warning" → "~8 min from detection to impact"
-   - Kp threshold: "Kp >= 6" → "Kp 5 (NOAA G1)" to match official NOAA scale
-5. **All 7 analogies validated** — consistent and appropriate for target audience, no changes needed.
-6. **Hub updated** (v0.7.0): "Solar Flares vs Geomagnetic Storms" now live in GNSS & Space Weather Basics section.
-7. Source markdown moved to `Library/completed/`.
-
-Deployed to Cloudflare Pages.
-
-## 2026-02-14 00:10 — Add DJI/Emlid/Base Stations article to Knowledge Hub
-
-Created new Knowledge Hub article at `/gnss-reliability/dji-emlid-base-stations`:
-
-1. **New Svelte page** (`+page.svelte` v0.1.0): 9 sections — overview, ionospheric dependency, DJI RTK accuracy loss, Emlid RS2/RS3 base station issues, NTRIP network limitations, rapid ionospheric changes, short baseline limitations, practical mapping impact, key takeaways.
-2. **Link fixes**: 7 broken links replaced with verified alternatives — NOAA GPS impacts, ESA ionospheric weather, DJI D-RTK 2, Emlid Reach RS3, FAA GNSS resource guide, EarthScope (replacing UNAVCO), removed defunct IGS space-weather WG.
-3. **All 9 analogies validated**: All accurate and consistent — no replacements needed.
-4. **All claims verified** against NOAA/ESA/standard GNSS literature.
-5. **Hub updated** (v0.6.0): "Why DJI, Emlid & Base Stations Struggle" added as live entry in For Drone Pilots section.
-6. **CSS warning resolved**: Removed unused `.article-section h3` selector.
-
-Deployed to Cloudflare Pages.
-
-## 2026-02-13 23:40 — Add OPUS/PPP Failures article to Knowledge Hub
-
-Created new Knowledge Hub article at `/gnss-reliability/opus-ppp-failures`:
-
-1. **New Svelte page**: 9 sections — OPUS/PPP atmospheric dependency, failure symptoms, signal quality problems (scintillation, cycle slips, noise), verification steps, and 5 remediation strategies in card layout.
-2. **Link fixes**: 4 broken/nonexistent links replaced with verified alternatives (NOAA GPS impacts, ESA ionospheric weather, Navipedia cycle-slip detection, EarthScope).
-3. **All analogies validated**: 9 analogies all accurate, no replacements needed.
-4. **Hub updated** (v0.5.0): "OPUS & PPP Failures Explained" in For Surveyors section now live.
-
-Deployed to Cloudflare Pages.
-
-## 2026-02-13 23:15 — Live Kp indicators in navbar
-
-Added current Kp and 3-hour predicted Kp to the top navigation bar, right-aligned:
-
-1. **Kp forecast query** (`kp.ts` v0.6.0): New `getNextKpForecast()` queries the `kp_forecast` table for the nearest future 3-hour window with the most recently issued prediction.
-2. **KpSummary enhanced** (`api.ts` v0.4.0): Added optional `forecast_kp` and `forecast_time` fields — backward compatible, existing consumers unaffected.
-3. **Navbar widget** (`+layout.svelte` v0.7.0): Client-side `onMount` fetches `/api/v1/kp/summary`, displays "Current Kp: X.X" and "3-Hour Predict: X.X" with color coding — green (0-4), yellow (5-6), red (7+). Auto-refreshes every 2 minutes. Fades in on load, no CLS.
-4. **Mobile responsive**: On small screens, Kp indicators move above nav links.
-5. **Wording fix**: Changed "during severe storms" → "during severe space weather events" in GNSS Risk Levels article to avoid confusion with terrestrial weather.
-
-Deployed to Cloudflare Pages.
-
-## 2026-02-13 22:45 — Add GNSS Risk Levels knowledge hub article
-
-Created new Knowledge Hub article at `/gnss-reliability/gnss-risk-levels` from content brief:
-
-1. **New Svelte page**: Full article with 8 sections — risk table, escalation breakdown, RTK vs Static sensitivity, scintillation, mission planning, mitigation strategies, key takeaways, and authoritative resources.
-2. **Live space weather banner**: Compact clickable widget at top fetches current Kp + GNSS risk from API, links to `/gnss` page.
-3. **Link verification**: Fixed 3 dead links — ESA `gnss-effects` (404) → `ionospheric-weather`, IGS `wg/space-weather` (404) → removed, UNAVCO (merged into EarthScope 2023) → `earthscope.org`.
-4. **Analogy fix**: Replaced KP 5 "driving in gusty winds" (broke maritime theme) with "sailing in a building swell" to maintain nautical metaphor progression.
-5. **Hub landing page**: Added article as live entry in GNSS & Space Weather Basics section (v0.3.0 → v0.4.0).
-6. **All claims verified**: Risk table matches NOAA G-scale, sensitivity ranking correct, scintillation effects accurate.
-
-Deployed to Cloudflare Pages.
-
-## 2026-02-13 20:52 — Chart readability improvements and active Kp highlight
-
-Three visual improvements to the homepage estimated Kp section:
-
-1. **Chart x-axis**: Now shows every 15-minute tick (was 30-min) for <=3h spans, with mono font at 9px to fit. Makes the 15-min data intervals clearly visible.
-2. **Chart y-axis**: Shows 0, 1, 2, 3, 4, 5, 7, 9 (was 0, 2, 4, 5, 7, 9). Every integer in the quiet range (0-4) is now labeled for easier reading.
-3. **KpGnssExplainer active highlight**: Changed from subtle `rgba(255,255,255,0.06)` grey to `rgba(234,179,8,0.15)` yellow background with a `rgba(234,179,8,0.4)` yellow border. Much more visible.
-
-**Files changed:** `KpLineChart.svelte` v0.4.0, `KpGnssExplainer.svelte` v0.3.0
-
----
-
-## 2026-02-13 20:43 — Switch Kp card and GNSS risk to real-time estimated Kp
-
-**Problem:** The homepage Kp Index card and GNSS risk score were sourced from `kp_obs` (NOAA 3-hour planetary K-index), which includes predicted future values. Card was showing Kp 4 with a future timestamp while the real-time chart showed Kp 3.
-
-**Fix:** Switched both to use `kp_estimated` table (real-time 15-min averaged magnetometer data):
-- `kp.ts` v0.5.0 — `getKpSummary()` now reads current Kp from `kp_estimated` (most recent 15-min bucket). Trend derived from last hour of estimated data. Historical `recent[]` array still uses `kp_obs` for 3-hour context.
-- `gnss-risk.ts` v0.3.0 — `getLatestConditions()` Kp query switched from `kp_obs` to `kp_estimated`.
-- `charts.ts` v0.3.0 — `buildKpChartUrl()` still uses `kp_obs` but filtered to exclude future predictions.
-
-**Result:** Kp card and GNSS risk now match the real-time chart. No more predicted/future values.
-
----
-
-## 2026-02-10 21:46 — Fix Kp chart x-axis labels (ISO timestamp comparison bug)
-
-**Root cause:** Timestamps in `kp_estimated` (and `solarwind_summary`) are stored in ISO 8601 format with `T`/`Z` (e.g., `2026-02-10T02:15:00Z`), but D1's `datetime('now')` returns `2026-02-10 02:15:00` (space separator). SQLite string comparison: `T` (ASCII 84) > space (ASCII 32), so `WHERE ts > datetime('now', '-3 hours')` matched **every row** — the 3-hour filter was returning all 12 hours of data, causing x-axis labels to overlap.
-
-**Fix — SQL queries:** Wrapped `ts` with `datetime()` to normalize ISO format before comparison in all affected queries:
-- `src/lib/server/kp.ts` (v0.2.0 → v0.3.0) — `getRecentKp` and `getEstimatedKp`
-- `src/lib/server/solarwind.ts` (v0.1.0 → v0.2.0) — `getRecentSolarWind`
-- `src/lib/server/charts.ts` (v0.1.0 → v0.2.0) — `buildKpChartUrl`
-- `workers/cron-ingest/src/tasks/ingest-kp-estimated.ts` (v0.1.0 → v0.2.0) — purge query
-- `workers/cron-ingest/src/tasks/generate-summaries.ts` (v0.2.0 → v0.3.0) — storm/wind detection queries
-
-**Fix — Chart resilience:** Updated `KpLineChart.svelte` (v0.2.0 → v0.3.0) with adaptive x-axis label intervals based on time span: ≤3h → 30min, ≤6h → 1h, ≤12h → 2h, >12h → 3h. Prevents label overlap regardless of data volume.
-
-Build: 0 new errors, 0 warnings. Deployed SvelteKit app + cron worker.
-
-## 2026-02-10 02:15 — Only autoplay 304Å animation on imagery page
-
-Changed `AnimationPlayer.svelte` (v0.2.0 → v0.3.0) to accept an `autoplay` prop (default `false`). Previously all animations started playing immediately on load. Now only the SUVI 304Å panel autoplays; the rest load paused on the first frame and require a click to play. Updated `PanelGrid.svelte` (v0.1.0 → v0.2.0) to pass `autoplay={panel.id === 'suvi-304'}`.
-
-## 2026-02-10 00:54 — Add Knowledge Base nav tab
-
-Added "Knowledge Base" link to the top navigation bar in `+layout.svelte` (v0.5.0 → v0.6.0), pointing to `/gnss-reliability`. Now visible site-wide alongside Home, GNSS, Alerts, Events, and Imagery tabs.
-
-Build: zero warnings. Deployed to Cloudflare Pages.
-
-## 2026-02-10 00:49 — GNSS Reliability hub page visual polish
-
-Updated `src/routes/gnss-reliability/+page.svelte` (v0.2.0 → v0.3.0):
-- "Coming soon" labels now bright yellow (`#f5c542`) with bold weight for visibility
-- Live articles ("How Space Weather Affects GPS", "Why RTK Drops to FLOAT") now have a blue "Read now →" badge and a persistent blue border on their cards
-- Uses `:has(.live)` selector for card border highlight
-
-Build: zero warnings. Deployed to Cloudflare Pages.
-
-## 2026-02-10 00:35 — Fix CRON_WORKER_URL + clarify dashboard link counts
-
-**Bug fix:** `CRON_WORKER_URL` in `wrangler.toml` had wrong subdomain (`skypixels` instead of `maine-sky-pixels`), causing CF error 1016 (DNS resolution failure) when triggering manual link checks. Fixed to `https://swft-cron-ingest.maine-sky-pixels.workers.dev`.
-
-**Dashboard clarity:** The dashboard showed "13 healthy" in the check result toast but "26 healthy" in the summary cards — both correct but measuring different things:
-- 13 = unique URLs checked (what the link checker deduplicates to)
-- 26 = link placements in `site_links` (same URL on different pages = separate rows, e.g. NOAA footer on all 8 pages = 8 rows)
-
-Updated `admin/+page.svelte` v0.2.0:
-- Added "Unique URLs" card alongside "Link Placements" card
-- Check run section now says "unique URLs checked"
-- Toast message clarified with "(unique URLs)" suffix
-
-**Verification:** Confirmed all 21 ExtLink placements in source match live site output exactly. Zero hardcoded external `<a>` tags remain. D1 `site_links` table has 26 rows (13 unique URLs across 8 crawled pages) — all healthy (HTTP 200).
-
-## 2026-02-10 00:10 — Admin section: link management, ExtLink component, check history
-
-Implemented full admin dashboard for external link health monitoring and override management.
-
-**Phase 1 — D1 Migration** (`migrations/0004_admin_links.sql`):
-- `site_links` table: discovered external links with override fields (url, text, action)
-- `link_check_runs` table: run metadata (timestamps, counts, trigger type)
-- `link_check_results` table: per-URL results per run
-- Applied locally and remotely
-
-**Phase 2 — Server helpers** (`src/lib/server/links.ts` + `src/lib/types/api.ts`):
-- Query functions: getActiveOverrides, getAllLinks, getLinkById, updateLinkOverride, check run queries
-- New types: SiteLink, LinkOverride, LinkCheckRun, LinkCheckResult
-
-**Phase 3 — ExtLink component** (`src/lib/components/ExtLink.svelte` + `src/routes/+layout.server.ts`):
-- Component reads overrides from `$page.data.linkOverrides` (loaded by layout server)
-- Three render modes: default (link), unlink (text only), remove (hidden)
-- Layout server loads active overrides from D1 with graceful fallback
-
-**Phase 4 — Link migration**:
-- Replaced all 21 external `<a>` tags with `<ExtLink>` across 3 files
-- `+layout.svelte` (1), `how-space-weather-affects-gps/+page.svelte` (10), `rtk-float-drops/+page.svelte` (10)
-
-**Phase 5 — Admin API endpoints** (5 new files under `src/routes/api/v1/admin/`):
-- GET links, PUT links/[id], POST link-check (proxy to cron worker), GET link-checks, GET link-checks/[id]
-- Added CRON_WORKER_URL to wrangler.toml and app.d.ts
-
-**Phase 6 — Admin UI** (5 new files under `src/routes/admin/`):
-- Dashboard: health summary cards, last check run, manual trigger button
-- Link management: table with inline editing (override URL, text, action)
-- Check history: list of past runs + detail view with per-URL results
-
-**Phase 7 — Cron worker updates**:
-- `link-crawler.ts` v0.2.0: extracts link text via HTMLRewriter (returns `Map<url, Map<page, text>>`)
-- `link-checker.ts` v0.2.0: accepts new map structure
-- `check-links.ts` v0.3.0: creates check run, upserts site_links, persists results, accepts triggerType
-- `index.ts` v0.5.0: passes 'scheduled'/'manual' trigger type
-- Added `/panels` to SITE_PATHS
-
-**Files created (11):** migration, server helpers, ExtLink, layout.server, 5 admin pages, 5 API endpoints
-**Files modified (8):** layout.svelte, 2 article pages, api.ts, app.d.ts, wrangler.toml, 4 cron worker files
-
-Build: 0 new errors, 0 new warnings, 46 tests pass. Deployed SvelteKit app + cron worker to production.
-
-## 2026-02-10 00:04 — Fact-check corrections to "RTK Float Drops" article
-
-Applied 5 corrections to `src/routes/gnss-reliability/rtk-float-drops/+page.svelte` (v0.2.0 → v0.3.0) based on fact-check against authoritative sources (SwiftNav, Trimble, ESA Navipedia, PX4 issues, peer-reviewed journals):
-
-1. **Reworded "often caused by ionosphere"** (line 30) — Changed to acknowledge obstructions, multipath, and radio link as common causes, with ionospheric disturbance dominant specifically during geomagnetic storms. Per SwiftNav/Trimble troubleshooting guides.
-2. **Reworded Key Takeaway "often atmospheric"** (line 192) — Same qualification: atmospheric causes dominate during storms but other causes are equally common in routine operations.
-3. **Added safety qualifier to flight control claim** (line 174) — Now notes that some autopilot platforms may experience position jumps during RTK transitions. Per PX4 issues #21555 and #21471.
-4. **Fixed FLOAT analogy** (line 110) — Changed "occasionally drifts" to "can't hold exact speed" to convey persistent degradation rather than intermittent.
-5. **Replaced CORS link with ESA Navipedia RTK Fundamentals** (line 48) — Old link pointed to CORS network homepage, not RTK fundamentals. New link: `gssc.esa.int/navipedia/index.php/RTK_Fundamentals`.
-
-Also fixed 4 unused CSS selector warnings across both article pages (`.reference a` and `.source-list a` → `.reference :global(a)` and `.source-list :global(a)`) caused by ExtLink component boundary.
-
-Build verified clean with zero warnings.
+## 2026-02-16 14:57 — Fix forecast query, Kp colors, and add storm alert banner
+
+Three dashboard fixes addressing user-reported issues during an active G2 geomagnetic storm:
+
+**1. Fixed 3-hour forecast showing wrong value** (kp.ts v0.7.0):
+- `getNextKpForecast` → `getCurrentKpForecast`: changed SQL to `WHERE datetime(forecast_time) > datetime('now', '-3 hours')` so the 3-hour window we're currently inside is included, not just the next upcoming one.
+
+**2. Fixed Kp card color mapping** (KpDisplay.svelte v0.4.0 + layout):
+- KpDisplay: `storm` status now maps to `var(--accent-orange)` (was red). Red reserved for `severe_storm` (Kp 7+).
+- Navbar: added `kp-orange` class for Kp 5-6, `kp-yellow` now only for Kp 4.
+
+**3. Built site-wide storm alert banner** (+layout.svelte v0.8.0):
+- Three visual tiers: G2 (amber gradient), G3 (red + pulsing border), G4+ (deep red + glow + flashing badge).
+- Tier determined by MAX of current Kp and highest active G-scale alert.
+- Persistence: banner stays while Kp ≥ 4.5.
+- Hysteresis: 30-minute dismiss delay (2 × 15-min data cycles) before auto-removal.
+- User can manually dismiss for the session.
+- Alert data fetched alongside Kp summary every 2 minutes via `/api/v1/alerts/active`.
+- Mobile responsive: verbose message hidden on small screens.
+
+**Files modified**: kp.ts, KpDisplay.svelte, +layout.svelte, summarylog.md
+**Tests**: 57 passing, no warnings.
+**Deployed** to Cloudflare Pages.
+
+## 2026-02-16 15:21 — Add stale data detection and NOAA outage banner
+
+Data hadn't updated for ~1 hour (4 missed 15-min cron cycles). Investigation confirmed NOAA endpoints are healthy — likely a cron worker timing issue. Added comprehensive stale data detection:
+
+**1. Stale data utility** (dashboard.ts v0.2.0):
+- `STALE_THRESHOLD_MS` = 60 minutes (4 × 15-min updates)
+- `isDataStale(timestamp)` checks if a timestamp is older than threshold
+- Fixed `fetchApi` TypeScript error (json typed as unknown)
+
+**2. NOAA Data Outage banner** (+layout.svelte v0.9.0):
+- Site-wide blue gradient banner appears when `kpData.current_time` > 1 hour old
+- Shows "STALE" badge with pulsing animation, age in minutes, missed update count
+- Links to swpc.noaa.gov for manual status check
+- 30-second tick interval re-evaluates staleness so banner appears promptly
+- Mobile responsive (verbose message hidden on small screens)
+
+**3. Card-level stale indicators**:
+- KpDisplay (v0.5.0): accepts `stale` prop, shows amber "Stale data — check swpc.noaa.gov" with pulse animation
+- KpLineChart (v0.5.0): accepts `stale` prop, semi-transparent overlay with stale warning text
+- GNSS Risk card (+page.svelte v0.10.0): inline stale indicator below advisory text
+- GNSS page (/gnss v0.6.0): stale indicator below risk meter updated_at timestamp
+
+**Files modified**: dashboard.ts, +layout.svelte, +page.svelte, KpDisplay.svelte, KpLineChart.svelte, /gnss/+page.svelte
+**Tests**: 57 passing, no new type errors.
+**Deployed** to Cloudflare Pages.
+
+## 2026-02-16 15:40 — Confirmed genuine NOAA outage via D1 and endpoint investigation
+
+User reported data still not updating despite stale detection working. Investigated cron worker and D1:
+- `cron_state` table: all tasks running "ok", last run 20:21 UTC
+- `kp_estimated` latest row: 19:15:00Z; `kp_obs` latest: 15:00:00.000
+- Direct curl to NOAA `planetary_k_index_1m.json`: data stops at 19:27 UTC (current time 20:26 UTC)
+- **Conclusion**: Genuine NOAA outage — their 1-minute estimated Kp feed stopped producing data. Cron worker functioning correctly, just no upstream data.
+
+## 2026-02-16 16:15 — Implement Kp fallback chain with 4 sources and site indicators
+
+Built a complete fallback chain so the site continues showing Kp data when NOAA's primary feed goes down. Four sources tried in priority order:
+
+**1. D1 migration** (0005_kp_estimated_source.sql):
+- Added `source TEXT NOT NULL DEFAULT 'noaa'` column to `kp_estimated` table
+- Applied to remote D1
+
+**2. Cron worker fallback fetch functions** (noaa-client.ts v0.4.0):
+- Refactored `fetchNoaa` into generic `fetchJson` for non-NOAA URLs
+- `fetchBoulderKp()` — Boulder K-index 1-min, buckets into 15-min averages
+- `fetchForecastEstimatedKp()` — extracts "estimated" rows from NOAA forecast feed
+- `fetchGfzKp()` — GFZ Potsdam independent Kp API with 12-hour lookback
+
+**3. Fallback orchestration** (ingest-kp-estimated.ts v0.3.0):
+- `fetchWithFallback()` tries: NOAA primary → Boulder K → NOAA forecast → GFZ Potsdam
+- 30-minute staleness threshold determines if a source's data is fresh enough
+- Stores `ok_fallback:{source}` in cron_state when using fallback
+- `upsertKpEstimated` (db.ts v0.4.0) now writes source per row
+
+**4. API + frontend source display**:
+- `KpSummary.data_source` field (api.ts v0.5.0) conditionally included when not 'noaa'
+- `kp.ts` v0.8.0: `getLatestEstimatedKp` returns source, `getKpSummary` includes it
+- `KpDisplay.svelte` v0.6.0: blue badge with human-readable source labels
+- `+layout.svelte` v0.10.0: amber "FALLBACK" banner (separate from blue "STALE" banner) showing which alternate source is active
+
+**Fallback chain**: NOAA Estimated Kp → Boulder K-index (single station) → NOAA Kp Forecast (3-hour) → GFZ Potsdam (independent)
+
+**Files modified**: 0005_kp_estimated_source.sql (new), noaa-client.ts, db.ts, ingest-kp-estimated.ts, index.ts (cron worker); api.ts, kp.ts, KpDisplay.svelte, +layout.svelte (SvelteKit app)
+**Tests**: 57 passing, no new type errors.
+**Deployed**: SvelteKit app + cron worker both deployed to Cloudflare.
+
+## 2026-02-16 16:08 — Add Kp Data Sources page with live 4-source comparison
+
+Built a dedicated `/data-sources` page showing all 4 Kp fallback chain sources live, with descriptions, charts, and status indicators. Also changed the fallback banner from amber to blue.
+
+**1. New types and constants** (api.ts v0.6.0, constants.ts v0.5.0):
+- `KpSourceData` interface: id, name, agency, country, description, resolution, dataType, url, status, points, etc.
+- `KpSourcesResult` interface: aggregated sources array + activeSourceId
+- `CACHE_TTL.KP_SOURCES = 180` seconds
+
+**2. Server-side source fetcher** (kp-sources.ts v0.1.0):
+- Adapts fetch/parse logic from cron worker's noaa-client.ts into SvelteKit server
+- 4 individual fetchers: NOAA estimated, Boulder K, NOAA forecast, GFZ Potsdam
+- `fetchAllKpSources()` via `Promise.allSettled()` — one slow source doesn't block others
+- `SOURCE_METADATA` with agency, country, description for each source
+- Staleness detection (>2 hours = stale)
+
+**3. API endpoint** (/api/v1/kp/sources/+server.ts v0.1.0):
+- Cached with 180s TTL via `withCache`
+- Queries D1 for active source, then fetches all 4 sources live
+
+**4. SourceKpValue.svelte** (v0.1.0):
+- Compact Kp display for source cards — big number, timestamp, error/stale states
+
+**5. Data Sources page** (/data-sources):
+- SSR + client polling (3-min refresh)
+- Fallback chain visualization with active/error/stale indicators
+- 2×2 grid (1-col on mobile) of source cards with: name, agency, status badge, Kp value, KpLineChart, description, resolution/type/count details, source link
+- Info section explaining how the fallback chain works
+
+**6. Layout updates** (+layout.svelte v0.11.0):
+- Added "Sources" nav link after "Knowledge Base"
+- Fallback banner changed from amber (#422006/#d97706) to blue (#1e3a5f/#60a5fa)
+- Fallback banner link changed from swpc.noaa.gov to `/data-sources`
+
+**New files**: kp-sources.ts, /data-sources/+page.server.ts, /data-sources/+page.svelte, /api/v1/kp/sources/+server.ts, SourceKpValue.svelte
+**Modified files**: api.ts, constants.ts, +layout.svelte
+**Tests**: 57 passing, build clean.
+**Deployed** to Cloudflare Pages.
+
+## 2026-02-16 16:52 — Research GFZ Potsdam Hp30/Hp60 higher-frequency Kp alternatives
+
+Researched GFZ Potsdam (kp.gfz.de) for higher-frequency alternatives to the 3-hour Kp index. Key findings documented below — see detailed research results in conversation.
+
+**Primary discovery: Hp30 and Hp60 indices available via the same JSON API we already use.**
+- Endpoint: `https://kp.gfz.de/app/json/?start=...&end=...&index=Hp30` (or `Hp60`)
+- Hp30 = 30-minute resolution, Hp60 = 60-minute resolution
+- Same API, same JSON structure, just different `index=` parameter
+- Values are numeric (not strings), open-ended (not capped at 9 like Kp)
+- Also available: `ap30` and `ap60` (linear equivalents)
+- Data latency: ~30-50 minutes after interval start (21:00Z was latest at 21:51Z UTC)
+- No `status` field for Hp30/Hp60 (only available for Kp/ap/Ap/Cp/C9/SN indices)
+- License: CC BY 4.0, source: GFZ Potsdam
+
+**Also discovered: GFZ Hp30/Hp60 forecast endpoint (72 hours ahead):**
+- JSON: `https://spaceweather.gfz.de/fileadmin/SW-Monitor/hp30_product_file_FORECAST_HP30_SWIFT_DRIVEN_LAST.json`
+- Includes ensemble quantiles (min, 0.25, median, 0.75, max) + storm probabilities
+- Hp60 forecast also available at similar URL pattern
+
+**Full API parameter reference (from Python client source):**
+- Base: `https://kp.gfz-potsdam.de/app/json/`
+- Required: `start`, `end` (ISO 8601, no milliseconds), `index`
+- Optional: `status` (`all`|`def`, only for Kp/ap/Ap/Cp/C9/SN)
+- Available indices: Kp, ap, Ap, Cp, C9, Hp30, Hp60, ap30, ap60, SN, Fobs, Fadj
+
+## 2026-02-16 17:30 — Promote Boulder K-index to primary, fix GFZ Potsdam API
+
+User reported NOAA Estimated Kp returning anomalous 0.0 values during an active storm (contradicting alerts and Boulder readings at 0.31). Also GFZ Potsdam was returning HTTP 500 errors.
+
+**1. Reordered fallback chain** — Boulder K-index promoted to primary:
+- Cron worker (ingest-kp-estimated.ts v0.5.0): Boulder tried first, NOAA estimated second
+- Data sources page chain visualization updated to match
+- API endpoint + page server defaults changed to `'noaa_boulder'`
+- kp.ts v0.9.0: Boulder no longer triggers fallback banner (treated as primary alongside NOAA)
+
+**2. Anomalous zero detection** (ingest-kp-estimated.ts):
+- `isFresh()` now detects when latest bucket is 0.0 but prior 3 buckets had max ≥1.0
+- Treats as invalid data, triggering fallback to next source
+- Catches sudden drops from elevated Kp (e.g., 6.0 → 0.0 in one minute)
+
+**3. Fixed GFZ Potsdam API** (noaa-client.ts v0.5.0, kp-sources.ts v0.2.0):
+- Root cause: `toISOString()` produces millisecond-precision timestamps (`2026-02-16T21:12:30.374Z`) which GFZ's Python/gunicorn backend can't parse → HTTP 500
+- Fix: `toGfzTimestamp()` strips milliseconds with `.replace(/\.\d{3}Z$/, 'Z')`
+- Applied in both cron worker and SvelteKit server fetcher
+
+**4. Manual ingest endpoint** (cron worker index.ts v0.7.0):
+- Added `GET /ingest-kp` for triggering immediate Kp ingest without waiting for cron cycle
+
+**Verified**: Boulder ingested 96 rows, Kp showing 0.31 (vs NOAA's 0.0), GFZ returning 3 data points (Kp 5.67).
+**Files modified**: ingest-kp-estimated.ts, noaa-client.ts, index.ts (cron worker); kp-sources.ts, kp.ts, +page.server.ts, +server.ts, +page.svelte (data-sources)
+**Deployed**: Both SvelteKit app and cron worker to Cloudflare.

@@ -1,8 +1,8 @@
-// gnss-risk.ts v0.3.0 — GNSS risk calculator (Kp from real-time estimated + Bz + speed + R-scale)
+// gnss-risk.ts v0.4.0 — GNSS risk calculator (Kp from real-time estimated + Bz + speed + R-scale)
 
 import type { D1Database } from '@cloudflare/workers-types';
 import { queryFirst } from './db';
-import { GNSS_WEIGHTS } from './constants';
+import { GNSS_WEIGHTS, GNSS_KP_FLOORS } from './constants';
 import type { GnssRiskResult, GnssRiskFactor } from '$types/api';
 
 interface LatestConditions {
@@ -45,16 +45,19 @@ async function getLatestConditions(db: D1Database): Promise<LatestConditions> {
 	};
 }
 
-/** Score Kp contribution (0–100 raw, before weighting) */
+/** Score Kp contribution (0–100 raw, before weighting).
+ *  Scores are calibrated so storm-level Kp (>=5) drives composite score
+ *  into the correct risk band even when other factors are mild. */
 function scoreKp(kp: number | null): { score: number; detail: string } {
 	if (kp === null) return { score: 0, detail: 'No Kp data' };
 
-	if (kp >= 8) return { score: 100, detail: `Kp ${kp} — Extreme geomagnetic activity` };
-	if (kp >= 7) return { score: 85, detail: `Kp ${kp} — Severe geomagnetic storm` };
-	if (kp >= 6) return { score: 70, detail: `Kp ${kp} — Strong storm conditions` };
-	if (kp >= 5) return { score: 55, detail: `Kp ${kp} — Geomagnetic storm` };
-	if (kp >= 4) return { score: 35, detail: `Kp ${kp} — Active/unsettled conditions` };
-	if (kp >= 3) return { score: 15, detail: `Kp ${kp} — Slightly unsettled` };
+	if (kp >= 9) return { score: 100, detail: `Kp ${kp} — G5 Extreme geomagnetic storm` };
+	if (kp >= 8) return { score: 95, detail: `Kp ${kp} — G4 Severe geomagnetic storm` };
+	if (kp >= 7) return { score: 85, detail: `Kp ${kp} — G3 Strong geomagnetic storm` };
+	if (kp >= 6) return { score: 75, detail: `Kp ${kp} — G2 Moderate geomagnetic storm` };
+	if (kp >= 5) return { score: 65, detail: `Kp ${kp} — G1 Minor geomagnetic storm` };
+	if (kp >= 4) return { score: 40, detail: `Kp ${kp} — Active geomagnetic conditions` };
+	if (kp >= 3) return { score: 20, detail: `Kp ${kp} — Unsettled conditions` };
 	return { score: 5, detail: `Kp ${kp} — Quiet conditions` };
 }
 
@@ -156,12 +159,22 @@ export async function computeGnssRisk(db: D1Database): Promise<GnssRiskResult> {
 	];
 
 	// Weighted composite score
-	const score = Math.round(
+	const weightedScore = Math.round(
 		kpResult.score * GNSS_WEIGHTS.KP +
 		bzResult.score * GNSS_WEIGHTS.BZ +
 		speedResult.score * GNSS_WEIGHTS.SPEED +
 		rResult.score * GNSS_WEIGHTS.R_SCALE
 	);
+
+	// Apply Kp-based floor — storms must register at the appropriate risk level
+	// even when Bz/speed/R-scale happen to be mild at the moment
+	let floorScore = 0;
+	if (conditions.kp !== null) {
+		for (const { minKp, minScore } of GNSS_KP_FLOORS) {
+			if (conditions.kp >= minKp) { floorScore = minScore; break; }
+		}
+	}
+	const score = Math.max(weightedScore, floorScore);
 
 	const level = riskLevel(score);
 	const advisory = getAdvisory(level, factors);

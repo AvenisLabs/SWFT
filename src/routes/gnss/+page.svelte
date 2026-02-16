@@ -1,11 +1,11 @@
-<!-- /gnss page v0.4.0 — GNSS risk assessment with historical Kp chart -->
+<!-- /gnss page v0.6.0 — GNSS risk assessment with historical Kp chart + stale data indicators -->
 <script lang="ts">
 	import GnssRiskMeter from '$lib/components/GnssRiskMeter.svelte';
 	import HelpPopover from '$lib/components/HelpPopover.svelte';
 	import Card from '$lib/components/Card.svelte';
 	import KpChart from '$lib/components/KpChart.svelte';
 	import type { GnssRiskResult, KpSummary } from '$types/api';
-	import { fetchApi } from '$lib/stores/dashboard';
+	import { fetchApi, isDataStale } from '$lib/stores/dashboard';
 	import { formatLocal } from '$lib/utils/timeFormat';
 	import { onMount } from 'svelte';
 
@@ -14,14 +14,24 @@
 	let loading = $state(true);
 	let methodologyOpen = $state(false);
 
-	onMount(async () => {
-		const [riskData, kpData] = await Promise.all([
-			fetchApi<GnssRiskResult>('/api/v1/gnss/risk'),
-			fetchApi<KpSummary>('/api/v1/kp/summary'),
-		]);
-		if (riskData) risk = riskData;
-		if (kpData) kpSummary = kpData;
-		loading = false;
+	// Stale data detection
+	let staleTick = $state(0);
+	let dataIsStale = $derived(staleTick >= 0 && kpSummary ? isDataStale(kpSummary.current_time) : false);
+
+	onMount(() => {
+		// Fetch data asynchronously (no return from async to satisfy onMount types)
+		(async () => {
+			const [riskData, kpData] = await Promise.all([
+				fetchApi<GnssRiskResult>('/api/v1/gnss/risk'),
+				fetchApi<KpSummary>('/api/v1/kp/summary'),
+			]);
+			if (riskData) risk = riskData;
+			if (kpData) kpSummary = kpData;
+			loading = false;
+		})();
+
+		const staleInterval = setInterval(() => { staleTick++; }, 30_000);
+		return () => clearInterval(staleInterval);
 	});
 
 	const levelColors: Record<string, string> = {
@@ -88,6 +98,9 @@
 				</div>
 				{#if risk.updated_at}
 					<p class="updated-time">Updated: {formatLocal(risk.updated_at)}</p>
+				{/if}
+				{#if dataIsStale}
+					<div class="stale-indicator" role="alert">Stale data — check <a href="https://www.swpc.noaa.gov" target="_blank" rel="noopener noreferrer">swpc.noaa.gov</a></div>
 				{/if}
 			{/if}
 		</Card>
@@ -182,10 +195,10 @@
 				<div class="methodology-section">
 					<h4>Factor Weights</h4>
 					<div class="weight-table">
-						<div class="weight-row"><span>Kp Index</span><span>35%</span></div>
+						<div class="weight-row"><span>Kp Index</span><span>40%</span></div>
 						<div class="weight-row"><span>Bz Component</span><span>25%</span></div>
 						<div class="weight-row"><span>Solar Wind Speed</span><span>20%</span></div>
-						<div class="weight-row"><span>R-Scale (Radio Blackout)</span><span>20%</span></div>
+						<div class="weight-row"><span>R-Scale (Radio Blackout)</span><span>15%</span></div>
 					</div>
 				</div>
 
@@ -198,6 +211,11 @@
 						<div class="weight-row"><span>60 – 79</span><span class="badge-severe">Severe</span></div>
 						<div class="weight-row"><span>80 – 100</span><span class="badge-extreme">Extreme</span></div>
 					</div>
+				</div>
+
+				<div class="methodology-section">
+					<h4>Storm Floor</h4>
+					<p>During geomagnetic storms, a Kp-based minimum score ensures the risk level always aligns with the storm severity: G1 (Kp 5+) floors at High, G3 (Kp 7+) at Severe, G4 (Kp 8+) at Extreme.</p>
 				</div>
 
 				<div class="methodology-section">
@@ -280,6 +298,24 @@
 		color: var(--text-muted);
 		font-size: 0.75rem;
 		margin-top: var(--space-sm);
+	}
+
+	.stale-indicator {
+		text-align: center;
+		margin-top: var(--space-sm);
+		font-size: 0.75rem;
+		font-weight: 600;
+		color: #f59e0b;
+		animation: stale-pulse 2s ease-in-out infinite;
+	}
+
+	.stale-indicator a {
+		color: #93c5fd;
+	}
+
+	@keyframes stale-pulse {
+		0%, 100% { opacity: 1; }
+		50% { opacity: 0.5; }
 	}
 
 	/* Risk Drivers grid */

@@ -1,4 +1,4 @@
-<!-- +page.svelte v0.8.0 — Dashboard home with SSR-prefetched data, CLS-free layout -->
+<!-- +page.svelte v0.11.0 — Dashboard home with SSR-prefetched data, CLS-free layout, stale data indicators -->
 <script lang="ts">
 	import Card from '$lib/components/Card.svelte';
 	import HelpPopover from '$lib/components/HelpPopover.svelte';
@@ -6,7 +6,7 @@
 	import KpLineChart from '$lib/components/KpLineChart.svelte';
 	import KpGnssExplainer from '$lib/components/KpGnssExplainer.svelte';
 	import type { KpSummary, KpEstimatedPoint, GnssRiskResult, AlertItem } from '$types/api';
-	import { fetchApi } from '$lib/stores/dashboard';
+	import { fetchApi, isDataStale } from '$lib/stores/dashboard';
 	import { onMount } from 'svelte';
 
 	let { data } = $props();
@@ -40,10 +40,15 @@
 		kpEstimated.length > 0 ? kpEstimated[kpEstimated.length - 1].kp : undefined
 	);
 
+	// Stale data detection — data >1 hour old means NOAA may be experiencing an outage
+	let staleTick = $state(0);
+	let dataIsStale = $derived(staleTick >= 0 && kpSummary ? isDataStale(kpSummary.current_time) : false);
+
 	onMount(() => {
 		refreshData();
-		const interval = setInterval(refreshData, 180_000);
-		return () => clearInterval(interval);
+		const dataInterval = setInterval(refreshData, 180_000);
+		const staleInterval = setInterval(() => { staleTick++; }, 30_000);
+		return () => { clearInterval(dataInterval); clearInterval(staleInterval); };
 	});
 
 	async function refreshData() {
@@ -99,7 +104,7 @@
 <main class="dashboard">
 	<header class="dashboard-header">
 		<h1>Space Weather Forecast & Tracking</h1>
-		<p class="subtitle">GNSS &amp; terrestrial impact guidance — powered by NOAA data</p>
+		<p class="subtitle">GNSS &amp; terrestrial impact guidance</p>
 	</header>
 
 	<section class="dashboard-grid">
@@ -111,7 +116,7 @@
 					text="The planetary K-index (Kp) measures geomagnetic disturbance on a 0-9 scale. Values >=4 indicate unsettled conditions; >=5 indicates a geomagnetic storm."
 				/>
 			{/snippet}
-			<KpDisplay summary={kpSummary} loading={loadingKp} />
+			<KpDisplay summary={kpSummary} loading={loadingKp} stale={dataIsStale} />
 		</Card>
 
 		<!-- GNSS Risk Card — links to /gnss -->
@@ -119,7 +124,7 @@
 			{#snippet headerExtra()}
 				<HelpPopover
 					id="help-gnss"
-					text="Composite risk score (0-100) based on Kp index (35%), Bz magnetic field (25%), solar wind speed (20%), and radio blackout scale (20%). Higher scores mean greater GNSS disruption risk."
+					text="Composite risk score (0-100) based on Kp index (40%), Bz magnetic field (25%), solar wind speed (20%), and radio blackout scale (15%). Geomagnetic storms (Kp ≥5) guarantee at least High risk."
 				/>
 			{/snippet}
 			{#if loadingGnss}
@@ -144,6 +149,9 @@
 					</div>
 				</div>
 				<p class="advisory-text">{gnssRisk.advisory}</p>
+				{#if dataIsStale}
+					<div class="stale-indicator" role="alert">Stale data — check <a href="https://www.swpc.noaa.gov" target="_blank" rel="noopener noreferrer">swpc.noaa.gov</a></div>
+				{/if}
 			{:else}
 				<p class="muted">Risk data unavailable</p>
 			{/if}
@@ -190,8 +198,11 @@
 					text="Near-real-time estimated Kp derived from 1-minute NOAA data, averaged into 15-minute buckets. Y-axis uses non-linear scaling to emphasize storm-level values."
 				/>
 			{/snippet}
+			{#if kpSummary?.data_source_label}
+				<p class="source-line">Data source: {kpSummary.data_source_label}</p>
+			{/if}
 			{#if kpEstimated.length > 0}
-				<KpLineChart data={kpEstimated} />
+				<KpLineChart data={kpEstimated} stale={dataIsStale} />
 			{:else}
 				<p class="muted">Estimated Kp data loading&hellip;</p>
 			{/if}
@@ -415,6 +426,29 @@
 		margin-top: var(--space-sm);
 		font-size: var(--font-size-sm);
 		color: var(--accent-blue);
+	}
+
+	.source-line {
+		font-size: 0.78rem;
+		color: var(--accent-blue);
+		margin-bottom: var(--space-sm);
+	}
+
+	.stale-indicator {
+		margin-top: var(--space-sm);
+		font-size: 0.75rem;
+		font-weight: 600;
+		color: #f59e0b;
+		animation: stale-pulse 2s ease-in-out infinite;
+	}
+
+	.stale-indicator a {
+		color: #93c5fd;
+	}
+
+	@keyframes stale-pulse {
+		0%, 100% { opacity: 1; }
+		50% { opacity: 0.5; }
 	}
 
 	.skeleton {

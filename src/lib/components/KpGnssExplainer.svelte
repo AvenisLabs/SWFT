@@ -1,4 +1,4 @@
-<!-- KpGnssExplainer.svelte v0.3.0 — 3-column GNSS effects table organized by Kp range -->
+<!-- KpGnssExplainer.svelte v0.4.0 — 3-column GNSS effects table organized by Kp range -->
 <script lang="ts">
 	interface Props {
 		activeKp?: number;
@@ -22,9 +22,9 @@
 	];
 
 	const stormRows: KpRow[] = [
-		{ kp: 5, gScale: 'G1', description: 'Minor fluctuations at high latitudes' },
-		{ kp: 6, gScale: 'G2', description: 'RTK fix rates drop, PPP convergence extends' },
-		{ kp: 7, gScale: 'G3', description: 'Significant errors, avoid precision work' },
+		{ kp: 5, gScale: 'G1', description: 'RTK degradation at mid-high latitudes, monitor quality' },
+		{ kp: 6, gScale: 'G2', description: 'Significant GNSS errors, RTK fix drops common' },
+		{ kp: 7, gScale: 'G3', description: 'Severe degradation, postpone precision work' },
 	];
 
 	const severeRows: KpRow[] = [

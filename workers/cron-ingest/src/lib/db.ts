@@ -1,4 +1,4 @@
-// db.ts v0.3.0 — D1 insert helpers for cron worker
+// db.ts v0.4.0 — D1 insert helpers for cron worker
 
 /** Upsert Kp observation (ignore duplicate ts+source) */
 export async function upsertKpObs(
@@ -46,7 +46,8 @@ export async function upsertSolarWind(
 /** Upsert 15-min estimated Kp buckets (replaces on re-fetch to update averages) */
 export async function upsertKpEstimated(
 	db: D1Database,
-	rows: Array<{ ts: string; kp_value: number; sample_count: number }>
+	rows: Array<{ ts: string; kp_value: number; sample_count: number }>,
+	source: string = 'noaa'
 ): Promise<number> {
 	if (rows.length === 0) return 0;
 
@@ -55,8 +56,8 @@ export async function upsertKpEstimated(
 		const batch = rows.slice(i, i + 50);
 		const stmts = batch.map(r =>
 			db.prepare(
-				'INSERT OR REPLACE INTO kp_estimated (ts, kp_value, sample_count) VALUES (?, ?, ?)'
-			).bind(r.ts, r.kp_value, r.sample_count)
+				'INSERT OR REPLACE INTO kp_estimated (ts, kp_value, sample_count, source) VALUES (?, ?, ?, ?)'
+			).bind(r.ts, r.kp_value, r.sample_count, source)
 		);
 		const results = await db.batch(stmts);
 		inserted += results.reduce((sum, r) => sum + (r.meta?.changes ?? 0), 0);

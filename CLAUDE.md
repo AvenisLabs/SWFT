@@ -43,16 +43,20 @@ NOAA JSON endpoints → Cron Worker (fetch, parse, deduplicate) → D1 → Svelt
 
 ### Key directories
 - `src/routes/api/v1/` — API endpoints, each with `+server.ts`
+- `src/routes/gnss-reliability/` — Knowledge Hub articles (11 articles organized by audience)
 - `src/lib/server/` — `db.ts` (D1 helpers), `cache.ts` (CF Cache wrapper), `constants.ts` (URLs, thresholds, TTLs), `gnss-risk.ts` (risk model)
 - `src/lib/types/` — `noaa.ts` (raw NOAA types, `Noaa*` prefix), `api.ts` (response contracts)
 - `src/lib/components/` — Svelte 5 components
-- `src/lib/stores/` — Client-side reactive stores
+- `src/lib/stores/` — `dashboard.ts` (client-side polling store with `fetchApi<T>()` helper)
 - `src/lib/utils/` — Formatters, helpers
-- `workers/cron-ingest/src/tasks/` — Individual ingest tasks (kp, solarwind, alerts, summaries)
-- `migrations/` — D1 schema SQL files
+- `workers/cron-ingest/src/tasks/` — Individual ingest tasks (kp, solarwind, alerts, summaries, check-links)
+- `migrations/` — D1 schema SQL files (4 migration files: core schema, indexes, estimated Kp, link management)
 
 ### Platform bindings (`src/app.d.ts`)
-`App.Platform` exposes `env.DB` (D1Database), `context` (ExecutionContext), `caches` (CF Cache). Access D1 via `getDb(platform)` from `$lib/server/db.ts`.
+`App.Platform` exposes `env.DB` (D1Database), `env.CRON_WORKER_URL` (string), `context` (ExecutionContext), `caches` (CF Cache). Access D1 via `getDb(platform)` from `$lib/server/db.ts`.
+
+### Middleware (`src/hooks.server.ts`)
+CORS handler automatically adds `Access-Control-Allow-Origin: *` to all `/api/*` responses and handles OPTIONS preflight with 204.
 
 ## Conventions
 
@@ -114,7 +118,10 @@ WHERE ts > datetime('now', '-24 hours')
 All NOAA JSON numeric values arrive as **strings** — always parse before use.
 
 ### File headers
-Use version comment: `// filename.ts v0.1.0 — Brief description`. Increment version on modification.
+Use version comment in all files. Increment version on modification.
+- `.ts` files: `// filename.ts v0.1.0 — Brief description`
+- `.svelte` files: `<!-- ComponentName.svelte v0.1.0 — Brief description -->`
+- `.sql` files: `-- 0001_filename.sql — Brief description`
 
 ### Path alias
 `$types` → `./src/lib/types` (configured in `svelte.config.js`)
@@ -131,10 +138,32 @@ Use version comment: `// filename.ts v0.1.0 — Brief description`. Increment ve
 The cron worker also exposes HTTP endpoints for manual triggers: `GET /health`, `GET /check-links`.
 
 ### ExtLink system
-External links use the `ExtLink` component which supports admin overrides (URL swap, text change, unlink, or remove). The root layout server loads `linkOverrides` from the `site_links` D1 table and provides them to all pages via `$page.data.linkOverrides`. Admin API routes at `/api/v1/admin/links/*` manage overrides.
+External links use the `ExtLink` component with admin-controllable overrides. The root layout server (`+layout.server.ts`) loads `linkOverrides` from the `site_links` D1 table and provides them to all pages via `$page.data.linkOverrides`.
+- **Override actions**: `'default'` (use override URL/text), `'unlink'` (render as plain text), `'remove'` (render nothing)
+- **Matching priority**: page-specific override first, then any-page fallback
+- **Admin CRUD**: `/api/v1/admin/links/*` and `/api/v1/admin/link-checks/*`
+
+### Link health check (`workers/cron-ingest/src/tasks/check-links.ts`)
+Weekly cron (`0 12 * * 1`) discovers all external links across site pages, then checks each URL. Results stored in `link_check_runs` and `link_check_results` tables. Sends Discord summary if `DISCORD_WEBHOOK_URL` env var is set. Also triggerable via `GET /check-links` on the cron worker.
+
+### Knowledge Hub (`/gnss-reliability/`)
+Static article pages organized by audience (Basics, Drone Pilots, Surveyors). Articles use consistent structure: breadcrumbs, header, sections with `.article-section` class, cross-links to other articles, and `ExtLink` for all external URLs. Hub landing page at `/gnss-reliability/` groups articles with role-based sections and badges.
 
 ### GNSS risk model (`$lib/server/gnss-risk.ts`)
-Weighted composite score: Kp (35%) + Bz (25%) + Speed (20%) + R-Scale (20%). Uses **15-minute estimated Kp** from the `kp_estimated` table (not the 3-hour `kp_obs`). Levels: Low (0-19), Moderate (20-39), High (40-59), Severe (60-79), Extreme (80-100).
+Weighted composite score: Kp (40%) + Bz (25%) + Speed (20%) + R-Scale (15%). Uses **15-minute estimated Kp** from the `kp_estimated` table (not the 3-hour `kp_obs`). Levels: Low (0-19), Moderate (20-39), High (40-59), Severe (60-79), Extreme (80-100). **Kp-based floor** ensures storms always register at the correct risk level (G1/Kp5+ → High, G3/Kp7+ → Severe, G4/Kp8+ → Extreme) even when other factors are calm.
+
+### D1 schema (migrations/)
+4 migration files defining 12 tables:
+- `0001`: `kp_obs`, `kp_forecast`, `alerts_raw`, `alerts_classified`, `solarwind_summary`, `events`, `site_news_items`, `content_articles`, `cron_state`
+- `0002`: Indexes on timestamp columns
+- `0003`: `kp_estimated` (15-min estimated Kp with `sample_count`)
+- `0004`: `site_links` (discovered external links + overrides), `link_check_runs` (run metadata), `link_check_results` (per-URL results with FK to runs)
+
+### CSS custom properties
+Dark theme using CSS variables throughout. Key prefixes:
+- Colors: `--bg-*`, `--border-*`, `--accent-*` (blue/green/yellow/orange/red), `--severity-*`, `--text-primary/secondary/muted`
+- Spacing: `--space-xs` through `--space-2xl`
+- Typography: `--font-size-sm` through `--font-size-3xl`, `--font-mono`
 
 ## Testing
 

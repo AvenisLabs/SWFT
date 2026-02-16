@@ -1,4 +1,4 @@
-<!-- +page.svelte v0.2.0 — Why Your OPUS or PPP Solution Failed Today (Space Weather Edition) -->
+<!-- +page.svelte v0.3.0 — Why Your OPUS or PPP Solution Failed Today (Space Weather Edition) -->
 <script>
 	import ExtLink from '$lib/components/ExtLink.svelte';
 </script>
@@ -103,7 +103,7 @@
 				<li>Ambiguity resolution may fail</li>
 			</ul>
 			<p class="reference">
-				<ExtLink href="https://webapp.csrs-scrs.nrcan-rncan.gc.ca/geod/tools-outils/ppp.php">Natural Resources Canada &mdash; PPP Service</ExtLink>
+				<ExtLink href="https://natural-resources.canada.ca/science-data/science-research/geomatics/geodetic-reference-systems/canadian-spatial-reference-system-csrs">Natural Resources Canada &mdash; CSRS-PPP</ExtLink>
 			</p>
 			<p class="reference">
 				<ExtLink href="https://igs.org/rts/">IGS Real-Time Service</ExtLink>
@@ -237,7 +237,7 @@
 				<li><ExtLink href="https://www.swpc.noaa.gov">NOAA Space Weather Prediction Center</ExtLink></li>
 				<li><ExtLink href="https://www.ngs.noaa.gov/OPUS/">NOAA NGS OPUS Service</ExtLink></li>
 				<li><ExtLink href="https://geodesy.noaa.gov/CORS/">NOAA CORS Network</ExtLink></li>
-				<li><ExtLink href="https://webapp.csrs-scrs.nrcan-rncan.gc.ca/geod/tools-outils/ppp.php">Natural Resources Canada PPP Service</ExtLink></li>
+				<li><ExtLink href="https://natural-resources.canada.ca/science-data/science-research/geomatics/geodetic-reference-systems/canadian-spatial-reference-system-csrs">Natural Resources Canada CSRS-PPP</ExtLink></li>
 				<li><ExtLink href="https://igs.org">International GNSS Service</ExtLink></li>
 				<li><ExtLink href="https://www.earthscope.org">EarthScope Consortium</ExtLink></li>
 				<li><ExtLink href="https://kp.gfz.de">GFZ Potsdam Kp Data Archive</ExtLink></li>

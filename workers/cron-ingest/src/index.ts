@@ -1,4 +1,4 @@
-// index.ts v0.5.0 — SWFT cron worker entry point, dispatches tasks by schedule
+// index.ts v0.8.0 — SWFT cron worker entry point, dispatches tasks by schedule
 
 import { ingestKp } from './tasks/ingest-kp';
 import { ingestKpEstimated } from './tasks/ingest-kp-estimated';
@@ -11,6 +11,7 @@ interface Env {
 	DB: D1Database;
 	SITE_URL: string;
 	DISCORD_WEBHOOK_URL?: string;
+	BOM_API_KEY?: string;
 }
 
 export default {
@@ -22,7 +23,7 @@ export default {
 			ctx.waitUntil(
 				Promise.allSettled([
 					ingestKp(env.DB).then(r => console.log(`[ingest-kp] inserted ${r.inserted} rows`)),
-					ingestKpEstimated(env.DB).then(r => console.log(`[ingest-kp-estimated] inserted ${r.inserted} rows`)),
+					ingestKpEstimated(env.DB, env.BOM_API_KEY).then(r => console.log(`[ingest-kp-estimated] source=${r.source}, inserted ${r.inserted} rows`)),
 					ingestSolarWind(env.DB).then(r => console.log(`[ingest-solarwind] inserted ${r.inserted} rows`)),
 				]).then(results => {
 					for (const r of results) {
@@ -75,6 +76,22 @@ export default {
 			try {
 				const result = await checkExternalLinks(env.DB, env.SITE_URL, env.DISCORD_WEBHOOK_URL, 'manual');
 				return new Response(JSON.stringify({ status: 'ok', ...result }), {
+					headers: { 'Content-Type': 'application/json' },
+				});
+			} catch (err) {
+				const msg = err instanceof Error ? err.message : 'Unknown error';
+				return new Response(JSON.stringify({ status: 'error', error: msg }), {
+					status: 500,
+					headers: { 'Content-Type': 'application/json' },
+				});
+			}
+		}
+
+		// Manual trigger for Kp ingest (forces fallback chain evaluation)
+		if (url.pathname === '/ingest-kp') {
+			try {
+				const result = await ingestKpEstimated(env.DB, env.BOM_API_KEY);
+				return new Response(JSON.stringify({ status: 'ok', source: result.source, inserted: result.inserted }), {
 					headers: { 'Content-Type': 'application/json' },
 				});
 			} catch (err) {

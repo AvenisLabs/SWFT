@@ -1,11 +1,12 @@
-<!-- KpLineChart.svelte v0.4.0 — SVG line chart for 15-min estimated Kp with non-linear Y axis -->
+<!-- KpLineChart.svelte v0.5.0 — SVG line chart for 15-min estimated Kp with non-linear Y axis + stale overlay -->
 <script lang="ts">
 	import type { KpEstimatedPoint } from '$types/api';
 
 	interface Props {
 		data: KpEstimatedPoint[];
+		stale?: boolean;
 	}
-	let { data }: Props = $props();
+	let { data, stale = false }: Props = $props();
 
 	// Chart dimensions
 	const CHART_W = 600;
@@ -187,12 +188,18 @@
 					stroke="var(--border-default)" stroke-width="1" />
 			</g>
 		</svg>
+		{#if stale}
+			<div class="chart-stale-overlay" role="alert">
+				<span class="chart-stale-text">Stale data — check <a href="https://www.swpc.noaa.gov" target="_blank" rel="noopener noreferrer">swpc.noaa.gov</a></span>
+			</div>
+		{/if}
 		<p class="chart-legend">Local time — non-linear scale: Kp 0–4 (60%), 4–7 (30%), 7–9 (10%)</p>
 	{/if}
 </div>
 
 <style>
 	.kp-line-chart {
+		position: relative;
 		padding: var(--space-sm) 0;
 		/* Reserve exact aspect ratio to prevent CLS — matches viewBox 600x200 */
 		aspect-ratio: 600 / 200;
@@ -206,5 +213,31 @@
 		color: var(--text-secondary);
 		font-size: 0.75rem;
 		margin-top: 2px;
+	}
+
+	/* Semi-transparent overlay when data is stale */
+	.chart-stale-overlay {
+		position: absolute;
+		inset: 0;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background: rgba(13, 17, 23, 0.6);
+		border-radius: var(--border-radius);
+		z-index: 2;
+	}
+
+	.chart-stale-text {
+		font-size: var(--font-size-sm);
+		font-weight: 700;
+		color: #f59e0b;
+		background: rgba(13, 17, 23, 0.85);
+		padding: var(--space-sm) var(--space-md);
+		border-radius: var(--border-radius-sm);
+		border: 1px solid rgba(245, 158, 11, 0.3);
+	}
+
+	.chart-stale-text a {
+		color: #93c5fd;
 	}
 </style>

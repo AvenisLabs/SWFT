@@ -1,9 +1,9 @@
-// kp.ts v0.6.0 — Kp queries + summary logic (current Kp from real-time estimated data)
+// kp.ts v0.10.0 — Kp queries + summary logic (current Kp from real-time estimated data, with source tracking)
 
 import type { D1Database } from '@cloudflare/workers-types';
 import { queryAll, queryFirst } from './db';
 import type { KpDataPoint, KpSummary, KpEstimatedPoint } from '$types/api';
-import { KP_THRESHOLDS } from './constants';
+import { KP_THRESHOLDS, KP_SOURCE_LABELS } from './constants';
 
 /** Fetch recent Kp observations (default: last 48h) */
 export async function getRecentKp(db: D1Database, hours = 48): Promise<KpDataPoint[]> {
@@ -31,22 +31,23 @@ export async function getEstimatedKp(db: D1Database, hours = 3): Promise<KpEstim
 	);
 }
 
-/** Get the most recent estimated Kp value (real-time 15-min data) */
-export async function getLatestEstimatedKp(db: D1Database): Promise<{ kp: number; ts: string } | null> {
-	return queryFirst<{ kp: number; ts: string }>(
+/** Get the most recent estimated Kp value (real-time 15-min data) with source */
+export async function getLatestEstimatedKp(db: D1Database): Promise<{ kp: number; ts: string; source: string } | null> {
+	return queryFirst<{ kp: number; ts: string; source: string }>(
 		db,
-		`SELECT kp_value as kp, ts FROM kp_estimated
+		`SELECT kp_value as kp, ts, COALESCE(source, 'noaa') as source FROM kp_estimated
 		 ORDER BY ts DESC LIMIT 1`
 	);
 }
 
-/** Get the next upcoming 3-hour Kp forecast (nearest future window, most recent issue) */
-export async function getNextKpForecast(db: D1Database): Promise<{ kp: number; forecast_time: string } | null> {
+/** Get the Kp forecast for the current 3-hour window (or nearest upcoming).
+ *  Looks back 3 hours so the window we're inside is included, not just the next one. */
+export async function getCurrentKpForecast(db: D1Database): Promise<{ kp: number; forecast_time: string } | null> {
 	return queryFirst<{ kp: number; forecast_time: string }>(
 		db,
 		`SELECT kp_value AS kp, forecast_time
 		 FROM kp_forecast
-		 WHERE datetime(forecast_time) > datetime('now')
+		 WHERE datetime(forecast_time) > datetime('now', '-3 hours')
 		 ORDER BY datetime(forecast_time) ASC, datetime(issued_at) DESC
 		 LIMIT 1`
 	);
@@ -55,11 +56,11 @@ export async function getNextKpForecast(db: D1Database): Promise<{ kp: number; f
 /** Build the Kp summary response — uses real-time estimated Kp for current value */
 export async function getKpSummary(db: D1Database): Promise<KpSummary> {
 	// Use real-time estimated Kp (15-min intervals) for the current value
-	const [latestEstimated, recentEstimated, recentObs, nextForecast] = await Promise.all([
+	const [latestEstimated, recentEstimated, recentObs, currentForecast] = await Promise.all([
 		getLatestEstimatedKp(db),
 		getEstimatedKp(db, 1), // last hour of 15-min data for trend
 		getRecentKp(db, 24),   // 3-hour obs for the recent history list
-		getNextKpForecast(db), // next 3-hour window prediction
+		getCurrentKpForecast(db), // forecast for current/next 3-hour window
 	]);
 
 	if (!latestEstimated) {
@@ -82,6 +83,10 @@ export async function getKpSummary(db: D1Database): Promise<KpSummary> {
 	const statusLabel = getStatusLabel(status);
 	const message = buildKpMessage(kp, trend, status);
 
+	// Map D1 source ID to display-friendly source ID
+	const sourceId = latestEstimated.source === 'noaa' ? 'noaa_estimated' : latestEstimated.source;
+	const sourceLabel = KP_SOURCE_LABELS[latestEstimated.source] ?? KP_SOURCE_LABELS[sourceId] ?? latestEstimated.source;
+
 	return {
 		current_kp: kp,
 		current_time: latestEstimated.ts,
@@ -90,7 +95,11 @@ export async function getKpSummary(db: D1Database): Promise<KpSummary> {
 		status_label: statusLabel,
 		message,
 		recent: recentObs.slice(0, 8), // 3-hour obs for history context
-		...(nextForecast && { forecast_kp: nextForecast.kp, forecast_time: nextForecast.forecast_time }),
+		...(currentForecast && { forecast_kp: currentForecast.kp, forecast_time: currentForecast.forecast_time }),
+		// Only include data_source when not the primary sources (Boulder or NOAA estimated) — controls fallback banner
+		...(latestEstimated.source !== 'noaa' && latestEstimated.source !== 'noaa_boulder' && { data_source: latestEstimated.source }),
+		// Always include the human-readable label for the source indicator
+		data_source_label: sourceLabel,
 	};
 }
 

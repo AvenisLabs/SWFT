@@ -1,4 +1,4 @@
-// check-links.ts v0.3.0 — External link health check with D1 persistence
+// check-links.ts v0.5.0 — External link health check with D1 persistence
 
 import { crawlExternalLinks } from '../lib/link-crawler';
 import type { LinkMap } from '../lib/link-crawler';
@@ -6,17 +6,50 @@ import { checkLinks } from '../lib/link-checker';
 import { sendLinkCheckReport } from '../lib/discord';
 import { updateCronState } from '../lib/db';
 
-/** All site pages to crawl for external links */
-const SITE_PATHS = [
+/** Fallback paths if the /api/v1/routes endpoint is unreachable */
+const FALLBACK_PATHS = [
 	'/',
 	'/alerts',
 	'/gnss',
 	'/gnss-reliability',
 	'/gnss-reliability/how-space-weather-affects-gps',
 	'/gnss-reliability/rtk-float-drops',
+	'/gnss-reliability/glossary',
+	'/gnss-reliability/dji-emlid-base-stations',
+	'/gnss-reliability/opus-ppp-failures',
+	'/gnss-reliability/gnss-risk-levels',
+	'/gnss-reliability/ionospheric-delay',
+	'/gnss-reliability/solar-flares-vs-storms',
+	'/gnss-reliability/space-weather-gnss-survey',
+	'/gnss-reliability/drone-mission-cancel',
 	'/events',
 	'/panels',
 ];
+
+/** Fetch page routes from the live site's /api/v1/routes endpoint */
+async function fetchSiteRoutes(siteUrl: string): Promise<string[]> {
+	const origin = new URL(siteUrl).origin;
+	const controller = new AbortController();
+	const timeout = setTimeout(() => controller.abort(), 10_000);
+
+	try {
+		const res = await fetch(`${origin}/api/v1/routes`, {
+			signal: controller.signal,
+			headers: { 'User-Agent': 'SWFT-LinkChecker/1.0 (site health monitor)' },
+		});
+
+		if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+		const json = await res.json() as { ok: boolean; data: string[] };
+		if (!json.ok || !Array.isArray(json.data) || json.data.length === 0) {
+			throw new Error('Invalid or empty routes response');
+		}
+
+		return json.data;
+	} finally {
+		clearTimeout(timeout);
+	}
+}
 
 export interface CheckLinksResult {
 	totalLinks: number;
@@ -45,15 +78,26 @@ export async function checkExternalLinks(
 	}
 
 	try {
-		// 1. Crawl all pages for external links
-		console.log(`[check-links] Crawling ${SITE_PATHS.length} pages on ${siteUrl}...`);
-		const linkMap = await crawlExternalLinks(siteUrl, SITE_PATHS);
+		// 1. Discover pages — fetch from live site, fall back to hardcoded list
+		let sitePaths: string[];
+		try {
+			sitePaths = await fetchSiteRoutes(siteUrl);
+			console.log(`[check-links] Fetched ${sitePaths.length} routes from /api/v1/routes`);
+		} catch (err) {
+			const msg = err instanceof Error ? err.message : String(err);
+			console.warn(`[check-links] Route discovery failed (${msg}), using fallback list`);
+			sitePaths = FALLBACK_PATHS;
+		}
+
+		// 2. Crawl all pages for external links
+		console.log(`[check-links] Crawling ${sitePaths.length} pages on ${siteUrl}...`);
+		const linkMap = await crawlExternalLinks(siteUrl, sitePaths);
 		console.log(`[check-links] Found ${linkMap.size} unique external links`);
 
-		// 2. Upsert discovered links to site_links table
+		// 3. Upsert discovered links to site_links table
 		await upsertDiscoveredLinks(db, linkMap);
 
-		// 3. Check each link
+		// 4. Check each link
 		const results = await checkLinks(linkMap);
 		const broken = results.filter(r => !r.ok);
 		const healthy = results.filter(r => r.ok);
@@ -63,7 +107,7 @@ export async function checkExternalLinks(
 		}
 		console.log(`[check-links] Results: ${healthy.length} healthy, ${broken.length} broken`);
 
-		// 4. Persist per-URL results
+		// 5. Persist per-URL results
 		if (runId) {
 			await persistCheckResults(db, runId, results);
 			// Update site_links with latest status
@@ -76,7 +120,7 @@ export async function checkExternalLinks(
 			).bind(results.length, healthy.length, broken.length, runId).run();
 		}
 
-		// 5. Send Discord report (if webhook configured)
+		// 6. Send Discord report (if webhook configured)
 		let discordSent = false;
 		if (discordWebhookUrl) {
 			await sendLinkCheckReport(discordWebhookUrl, results);
@@ -86,7 +130,7 @@ export async function checkExternalLinks(
 			console.warn('[check-links] DISCORD_WEBHOOK_URL not set — skipping Discord report');
 		}
 
-		// 6. Update cron state
+		// 7. Update cron state
 		await updateCronState(db, 'check-links', 'ok', results.length);
 
 		return {
