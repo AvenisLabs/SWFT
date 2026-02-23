@@ -28,7 +28,7 @@
 	}
 
 	// Fallback chain order for the visual
-	const chainOrder = ['noaa_estimated', 'noaa_boulder', 'noaa_forecast', 'gfz', 'bom'];
+	const chainOrder = ['noaa_estimated', 'noaa_boulder', 'gfz', 'bom', 'noaa_forecast'];
 	const chainLabels: Record<string, string> = {
 		noaa_estimated: 'NOAA Estimated',
 		noaa_boulder: 'Boulder K',
@@ -169,10 +169,10 @@
 		<p>
 			If the primary source fails (timeout, HTTP error, or stale data), the cron worker automatically
 			tries the next source in the chain. The <strong>NOAA Boulder K-index</strong> is the first fallback.
-			The <strong>NOAA Kp Forecast</strong> provides coarser 3-hour data as a third fallback.
 			<strong>GFZ Potsdam Hp30</strong> (30-minute resolution) serves as a completely independent source
-			from a different continent. Finally, the <strong>Australian BoM K-index</strong> provides
-			a last-resort independent regional index from the Southern Hemisphere.
+			from a different continent. The <strong>Australian BoM K-index</strong> provides an independent
+			regional index from the Southern Hemisphere. Finally, the <strong>NOAA Kp Forecast</strong> is
+			the last resort — its 3-hour granularity means outages may not be reflected for hours.
 		</p>
 		<p>
 			When a fallback source is active, a blue banner appears at the top of every page indicating

@@ -1,9 +1,9 @@
-// ingest-kp-estimated.ts v0.7.0 — Ingest estimated Kp with fallback chain:
+// ingest-kp-estimated.ts v0.8.0 — Ingest estimated Kp with fallback chain:
 // 1. NOAA planetary_k_index_1m (global planetary Kp, primary source)
 // 2. NOAA boulder_k_index_1m (single station fallback)
-// 3. NOAA forecast "estimated" entry (3-hour granularity)
-// 4. GFZ Potsdam Hp30 (independent, 30-min resolution)
-// 5. Australian BoM K-index (independent continent/infrastructure)
+// 3. GFZ Potsdam Hp30 (independent, 30-min resolution)
+// 4. Australian BoM K-index (independent continent/infrastructure)
+// 5. NOAA forecast "estimated" entry (3-hour granularity, last resort)
 
 import {
 	fetchEstimatedKp,
@@ -74,38 +74,38 @@ async function fetchWithFallback(bomApiKey?: string): Promise<FallbackResult> {
 		console.error('[kp-fallback] Boulder K failed:', err);
 	}
 
-	// 3. Fallback: NOAA forecast "estimated" (3-hour granularity)
-	try {
-		const buckets = await fetchForecastEstimatedKp();
-		if (buckets.length > 0) {
-			return { source: 'noaa_forecast', label: 'NOAA Kp Forecast', buckets };
-		}
-		console.log('[kp-fallback] NOAA forecast has no estimated entries, trying GFZ...');
-	} catch (err) {
-		console.error('[kp-fallback] NOAA forecast failed:', err);
-	}
-
-	// 4. Fallback: GFZ Potsdam Hp30 (independent, 30-min)
+	// 3. Fallback: GFZ Potsdam Hp30 (independent, 30-min)
 	try {
 		const buckets = await fetchGfzKp();
 		if (buckets.length > 0) {
 			return { source: 'gfz', label: 'GFZ Potsdam Hp30', buckets };
 		}
+		console.log('[kp-fallback] GFZ Potsdam has no data, trying BoM...');
 	} catch (err) {
 		console.error('[kp-fallback] GFZ Potsdam failed:', err);
 	}
 
-	// 5. Fallback: Australian BoM K-index (independent continent)
+	// 4. Fallback: Australian BoM K-index (independent continent)
 	if (bomApiKey) {
 		try {
 			const buckets = await fetchBomKp(bomApiKey);
 			if (buckets.length > 0) {
 				return { source: 'bom', label: 'Australian BoM K-index', buckets };
 			}
-			console.log('[kp-fallback] BoM has no recent data');
+			console.log('[kp-fallback] BoM has no recent data, trying NOAA forecast...');
 		} catch (err) {
 			console.error('[kp-fallback] Australian BoM failed:', err);
 		}
+	}
+
+	// 5. Last resort: NOAA forecast "estimated" (3-hour granularity — least current data)
+	try {
+		const buckets = await fetchForecastEstimatedKp();
+		if (buckets.length > 0) {
+			return { source: 'noaa_forecast', label: 'NOAA Kp Forecast', buckets };
+		}
+	} catch (err) {
+		console.error('[kp-fallback] NOAA forecast failed:', err);
 	}
 
 	// All sources exhausted — return empty result with primary source tag

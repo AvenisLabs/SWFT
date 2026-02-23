@@ -1,4 +1,4 @@
-<!-- KpDisplay.svelte v0.7.0 — Big Kp number + trend + status + stale/source indicators -->
+<!-- KpDisplay.svelte v0.8.0 — Big Kp number + trend + status + stale/source indicators -->
 <script lang="ts">
 	import type { KpSummary } from '$types/api';
 	import { formatLocal } from '$lib/utils/timeFormat';
@@ -10,17 +10,8 @@
 	}
 	let { summary, loading = false, stale = false }: Props = $props();
 
-	// Human-readable labels for fallback data sources
-	const sourceLabels: Record<string, string> = {
-		noaa_boulder: 'Boulder K-index (single station)',
-		noaa_forecast: 'NOAA Kp Forecast (3-hour)',
-		gfz: 'GFZ Potsdam Hp30 (independent)',
-		bom: 'Australian BoM K-index (independent)',
-	};
-
-	let dataSourceLabel = $derived(
-		summary?.data_source ? sourceLabels[summary.data_source] ?? summary.data_source : null
-	);
+	// Always show the active data source label (from KP_SOURCE_LABELS via kp.ts)
+	let dataSourceLabel = $derived(summary?.data_source_label ?? null);
 
 	// Map status to CSS color variable — orange for G1-G2, red for G3+
 	const statusColors: Record<string, string> = {

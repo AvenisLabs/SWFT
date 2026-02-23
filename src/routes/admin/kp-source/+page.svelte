@@ -6,9 +6,9 @@
 		{ id: 'auto', label: 'Auto (Fallback Chain)', description: 'Automatically selects the best available source using the priority chain.' },
 		{ id: 'noaa', label: 'NOAA Estimated Kp', description: 'Planetary Kp from global magnetometer network. Current default primary.' },
 		{ id: 'noaa_boulder', label: 'NOAA Boulder K-index', description: 'Single-station K-index from Boulder, CO. First fallback.' },
-		{ id: 'noaa_forecast', label: 'NOAA Kp Forecast', description: '3-hour forecast "estimated" entries. Lower temporal resolution.' },
 		{ id: 'gfz', label: 'GFZ Potsdam Hp30', description: 'Independent 30-min index from Germany. ~30-50 min latency.' },
 		{ id: 'bom', label: 'Australian BoM K-index', description: 'Regional K-index from Australian magnetometers. Requires BOM_API_KEY.' },
+		{ id: 'noaa_forecast', label: 'NOAA Kp Forecast', description: '3-hour forecast entries. Last resort — low temporal resolution.' },
 	];
 
 	let currentSource = $state('auto');
