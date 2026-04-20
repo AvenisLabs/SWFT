@@ -1,12 +1,16 @@
-<!-- +layout.svelte v0.12.0 — Root layout with navigation, live Kp, storm + outage banners, source tracking -->
+<!-- +layout.svelte v0.13.0 — Root layout with navigation, live Kp, storm + outage banners, source tracking, monitoring-mode chip -->
 <script lang="ts">
 	import '../app.css';
 	import { onMount } from 'svelte';
 	import { formatBuildTime } from '$lib/utils/buildInfo';
 	import { fetchApi, STALE_THRESHOLD_MS, isDataStale } from '$lib/stores/dashboard';
 	import ExtLink from '$lib/components/ExtLink.svelte';
-	import type { KpSummary, AlertItem } from '$types/api';
+	import MonitoringMode from '$lib/components/MonitoringMode.svelte';
+	import type { KpSummary, AlertItem, MonitoringModeData } from '$types/api';
 	let { children, data } = $props();
+
+	// SSR monitoring mode — derived so the chip updates when the user navigates.
+	let modeState = $derived<MonitoringModeData>(data.modeState ?? { mode: 'normal', storm_until: null, elevated_until: null });
 
 	const buildTime = formatBuildTime();
 
@@ -227,6 +231,7 @@
 	</div>
 
 	<footer class="app-footer">
+		<p class="footer-mode"><MonitoringMode state={modeState} /></p>
 		<p>&copy; 2026 SWFT SkyPixels &mdash; Last updated: {buildTime}</p>
 		<p class="footer-links"><a href="/gnss-reliability">GNSS Reliability Guide</a></p>
 		<p class="attribution">Data sourced from <ExtLink href="https://www.swpc.noaa.gov">NOAA Space Weather Prediction Center</ExtLink> &middot; v0.2.0</p>
@@ -571,6 +576,10 @@
 		text-align: center;
 		font-size: 0.75rem;
 		color: var(--text-muted);
+	}
+
+	.footer-mode {
+		margin-bottom: var(--space-xs);
 	}
 
 	.app-footer a {

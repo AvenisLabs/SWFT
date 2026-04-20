@@ -28,6 +28,51 @@ preserved as `summarylog_2026-03-19.md` before restore so the lessons learned we
 4. `GET /api/v1/events/kp` searchable history endpoint + mode indicator in UI
 5. Staged deploy + 48h D1 usage monitoring
 
+## 2026-04-20 — Searchable Kp events API + monitoring-mode indicator (Phase 5)
+
+### New search endpoint
+- `src/routes/api/v1/events/kp/+server.ts` NEW — `GET /api/v1/events/kp`.
+  Query params: `from`, `to` (ISO 8601; defaults 30d ago / now), `min_kp`
+  (default 4, clamped 4..9), `storm_class` (`active|G1|G2|G3|G4|G5`), `limit`
+  (default 100, max 500). Uses the indexes on `ts`, `kp_value`, `storm_class`.
+  Precomputed ISO bounds bound into the query so the plan keeps the index.
+  Cached 60s (short TTL so new storms show up quickly).
+
+### Monitoring-mode data flow
+- `src/lib/server/mode.ts` NEW — `getModeState(db)` reads the three keys from
+  `system_state` and applies expiry on read. UI never sees a stale 'storm'
+  label lingering past `storm_until_iso`.
+- `src/lib/types/api.ts` v0.8.0 -> v0.9.0 — new `MonitoringModeData` type;
+  `StatusResponse` extended with `mode` + two expiry fields; new
+  `KpEventsSearchResult` for the search envelope.
+- `src/lib/server/constants.ts` v0.7.0 -> v0.8.0 — `CACHE_TTL.KP_EVENTS = 60`,
+  `CACHE_TTL.MODE_STATE = 60`.
+- `src/routes/api/v1/status/+server.ts` v0.3.0 -> v0.4.0 — `/status` now
+  surfaces monitoring mode and expiry timestamps.
+
+### UI indicator
+- `src/lib/components/MonitoringMode.svelte` NEW — small pill chip in the
+  footer. Three states with distinct colors: green (normal, hourly), yellow
+  (elevated, 15 min), orange with gentle pulse (storm, 5 min). Shows expiry
+  time in UTC when applicable. Title attribute carries the full ISO.
+- `src/routes/+layout.server.ts` v0.1.0 -> v0.2.0 — loads mode state
+  alongside link overrides via `Promise.all`, with per-resource `catch`
+  fallbacks so a single D1 hiccup can't break the whole layout.
+- `src/routes/+layout.svelte` v0.12.0 -> v0.13.0 — renders the chip in the
+  footer (small, unobtrusive; doesn't compete with the existing G-scale
+  storm banner for attention).
+
+### SSR, no extra polling
+Chip is pure SSR — it refreshes on navigation, no client poll added. Matches
+the spirit of the March 15 "no client polling" cleanup. A user in the middle
+of a storm will see the chip update the next time any page loads (at most a
+~60s lag given the cached layout data).
+
+### Verification
+- 94/94 tests pass.
+- `svelte-check` 0 errors.
+- Production build clean.
+
 ## 2026-04-20 — Dynamic-rate cron worker with skip-gate (Phase 4)
 
 Replaced the three-schedule cron (`*/3 + */5 + */15`) with a single `*/5` fire
