@@ -1,4 +1,4 @@
-<!-- /events/[id] page v0.3.0 — Event detail page with dual time display -->
+<!-- /events/[id] page v0.3.1 — Event detail page with dual time display -->
 <script lang="ts">
 	import Card from '$lib/components/Card.svelte';
 	import type { EventItem } from '$types/api';
@@ -15,7 +15,7 @@
 		try {
 			const res = await fetch(`/api/v1/events/${id}`);
 			if (res.ok) {
-				const json = await res.json();
+				const json = (await res.json()) as { data: EventItem };
 				event = json.data;
 			} else {
 				notFound = true;

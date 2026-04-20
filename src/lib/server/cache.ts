@@ -1,4 +1,4 @@
-// cache.ts v0.2.0 — Cloudflare Cache API wrapper for API responses
+// cache.ts v0.3.0 — Cloudflare Cache API wrapper for API responses
 
 /** Cache key prefix to namespace our entries */
 const CACHE_PREFIX = 'https://swft-web.internal/cache/';
@@ -13,8 +13,12 @@ export async function withCache(
 	ttlSeconds: number,
 	factory: () => Promise<Response>
 ): Promise<Response> {
-	// CF Cache API is only available in the Workers runtime
-	const cache = caches?.default;
+	// CF Cache API is only available in the Workers runtime. The standard
+	// CacheStorage type has no `default` property — that's a Workers augmentation —
+	// so we assert through unknown to access it without pulling in a global types
+	// reference that would affect the whole project.
+	const cfCaches = caches as unknown as { default?: Cache };
+	const cache = cfCaches.default;
 	if (!cache) {
 		return factory();
 	}

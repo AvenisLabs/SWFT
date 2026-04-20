@@ -1,5 +1,7 @@
-// GET /api/v1/status — Health check with ingestion timestamps
-// v0.1.0
+// GET /api/v1/status — Health check with ingestion timestamps.
+// v0.2.0 — Bounded COUNTs (last 7 days only) use the ts index instead of scanning
+// the whole table. Pre-fix, three unbounded COUNT(*) calls at a 30s TTL accounted
+// for ~54% of total D1 row reads (see 2026-03-15 postmortem).
 
 import type { RequestHandler } from './$types';
 import { getDb, queryFirst, queryAll } from '$lib/server/db';
@@ -11,15 +13,21 @@ export const GET: RequestHandler = async ({ platform, request }) => {
 	return withCache(request, 'status', CACHE_TTL.STATUS, async () => {
 		try {
 			const db = getDb(platform);
+			const sevenDaysAgo = new Date(Date.now() - 7 * 86400_000).toISOString();
 
-			// Fetch cron state and row counts in parallel
 			const [cronStates, kpCount, alertCount, swCount] = await Promise.all([
 				queryAll<{ task_name: string; last_run: string; last_status: string }>(
 					db, 'SELECT task_name, last_run, last_status FROM cron_state'
 				),
-				queryFirst<{ cnt: number }>(db, 'SELECT COUNT(*) as cnt FROM kp_obs'),
-				queryFirst<{ cnt: number }>(db, 'SELECT COUNT(*) as cnt FROM alerts_raw'),
-				queryFirst<{ cnt: number }>(db, 'SELECT COUNT(*) as cnt FROM solarwind_summary'),
+				queryFirst<{ cnt: number }>(
+					db, 'SELECT COUNT(*) as cnt FROM kp_obs WHERE ts > ?', [sevenDaysAgo]
+				),
+				queryFirst<{ cnt: number }>(
+					db, 'SELECT COUNT(*) as cnt FROM alerts_raw WHERE issue_time > ?', [sevenDaysAgo]
+				),
+				queryFirst<{ cnt: number }>(
+					db, 'SELECT COUNT(*) as cnt FROM solarwind_summary WHERE ts > ?', [sevenDaysAgo]
+				),
 			]);
 
 			const cronMap = new Map(cronStates.map(c => [c.task_name, c]));

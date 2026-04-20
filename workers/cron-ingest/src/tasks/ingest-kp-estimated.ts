@@ -1,4 +1,4 @@
-// ingest-kp-estimated.ts v0.8.0 — Ingest estimated Kp with fallback chain:
+// ingest-kp-estimated.ts v0.9.0 — Ingest estimated Kp with fallback chain:
 // 1. NOAA planetary_k_index_1m (global planetary Kp, primary source)
 // 2. NOAA boulder_k_index_1m (single station fallback)
 // 3. GFZ Potsdam Hp30 (independent, 30-min resolution)
@@ -179,11 +179,12 @@ export async function ingestKpEstimated(db: D1Database, bomApiKey?: string): Pro
 
 		const inserted = await upsertKpEstimated(db, buckets, source);
 
-		// Purge rows older than 12 hours to keep the table lean
-		// datetime(ts) normalises ISO 8601 'T'/'Z' format for correct comparison
+		// Purge rows older than 12 hours to keep the table lean.
+		// Precomputed ISO bound so the ts index is used (see 2026-03-15 postmortem).
+		const purgeBound = new Date(Date.now() - 12 * 3600_000).toISOString();
 		await db.prepare(
-			"DELETE FROM kp_estimated WHERE datetime(ts) < datetime('now', '-12 hours')"
-		).run();
+			"DELETE FROM kp_estimated WHERE ts < ?"
+		).bind(purgeBound).run();
 
 		const statusMsg = source === 'noaa' ? 'ok' : `ok_fallback:${source}`;
 		await updateCronState(db, 'ingest-kp-estimated', statusMsg, inserted);

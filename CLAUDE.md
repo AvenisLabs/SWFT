@@ -123,15 +123,22 @@ Admin: `admin/kp-source` (GET/POST), `admin/links`, `admin/links/[id]`, `admin/l
 - `execute(db, sql, params)` — INSERT/UPDATE/DELETE returning affected count
 - `batchExecute(db, statements)` — batch multiple statements (keep batches ≤50 for D1 limits)
 
-### D1 datetime gotcha
-JavaScript `toISOString()` produces `2026-02-10T02:15:00Z` but SQLite `datetime('now')` returns `2026-02-10 02:15:00`. The `T` > space in string comparison, so raw comparisons silently match wrong rows. **Always wrap timestamp columns with `datetime()`:**
-```sql
--- CORRECT:
-WHERE datetime(ts) > datetime('now', '-24 hours')
-  AND datetime(ts) <= datetime('now')
--- WRONG (will match all rows if ts is ISO format):
-WHERE ts > datetime('now', '-24 hours')
+### D1 timestamp queries — index-friendly pattern
+**Never wrap indexed timestamp columns with `datetime()` in WHERE clauses.** Doing so prevents SQLite from using the B-tree index on the column, forcing a full table scan. The 2026-03-15 postmortem identified this pattern as responsible for ~240M unnecessary row reads in 6 days (~33% of the disaster).
+
+**Correct pattern** — precompute an ISO 8601 bound in JavaScript and compare as a plain string:
+```typescript
+// In JS/TS:
+const bound = new Date(Date.now() - 24 * 3600_000).toISOString();
+// In SQL (the ts index is used):
+WHERE ts > ?   // bind `bound`
 ```
+
+**Why this works**: all timestamps stored via `toISOString()` are ISO 8601 (`2026-02-10T02:15:00.000Z`). Lexicographic string comparison gives correct chronological ordering for that format, so we don't need `datetime()` normalization.
+
+**Exception**: `kp_forecast.forecast_time` and `kp_forecast.issued_at` come from NOAA in space-separated format (`2026-02-10 02:15:00`). Those queries still need `datetime()` — the table is small so full scans are fine.
+
+**Related**: never use unbounded `COUNT(*)` on large tables. Status-endpoint counts must include a `WHERE ts > ?` bound so the index is used (~390M row reads in 6 days came from unbounded COUNTs at a 30s TTL — the status cache TTL is now 300s).
 
 ### NOAA data quirk
 All NOAA JSON numeric values arrive as **strings** — always parse before use.

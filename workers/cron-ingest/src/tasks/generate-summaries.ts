@@ -1,30 +1,44 @@
-// generate-summaries.ts v0.3.0 — Compute derived summaries from ingested data
+// generate-summaries.ts v0.4.0 — Derived summaries + retention cleanup.
+// Retention cleanup was added after 2026-03-15 postmortem — unbounded table growth
+// was responsible for ~14% of the 729M row-read disaster. Every-hour run prunes
+// old rows so queries stay cheap.
 
 import { updateCronState } from '../lib/db';
 
-// Detects notable space weather events from recent data and inserts into the events table.
-// Runs on the every-15-minutes schedule to produce aggregated event records.
-export async function generateSummaries(db: D1Database): Promise<{ events_created: number }> {
+const RETENTION = {
+	kp_obs_days: 30,
+	solarwind_summary_days: 7,
+	alerts_days: 90,
+	events_days: 90,
+} as const;
+
+function isoDaysAgo(days: number): string {
+	return new Date(Date.now() - days * 86400_000).toISOString();
+}
+
+function isoHoursAgo(hours: number): string {
+	return new Date(Date.now() - hours * 3600_000).toISOString();
+}
+
+export async function generateSummaries(db: D1Database): Promise<{ events_created: number; rows_pruned: number }> {
 	try {
 		let eventsCreated = 0;
 
-		// Check for geomagnetic storm conditions (Kp >= 5 in last 3 hours)
-		const stormKp = await db.prepare(`
-			SELECT ts, kp_value FROM kp_obs
-			WHERE datetime(ts) > datetime('now', '-3 hours')
-			  AND kp_value >= 5
-			ORDER BY ts DESC
-			LIMIT 1
-		`).first<{ ts: string; kp_value: number }>();
+		// --- Event detection: geomagnetic storm (Kp >= 5 in last 3 hours) ---
+		const stormBound = isoHoursAgo(3);
+		const stormKp = await db.prepare(
+			`SELECT ts, kp_value FROM kp_obs
+			 WHERE ts > ? AND kp_value >= 5
+			 ORDER BY ts DESC LIMIT 1`
+		).bind(stormBound).first<{ ts: string; kp_value: number }>();
 
 		if (stormKp) {
-			// Only create event if none exists in last 6 hours for same type
-			const existing = await db.prepare(`
-				SELECT id FROM events
-				WHERE event_type = 'geomagnetic_storm'
-				  AND begins > datetime('now', '-6 hours')
-				LIMIT 1
-			`).first();
+			const existingBound = isoHoursAgo(6);
+			const existing = await db.prepare(
+				`SELECT id FROM events
+				 WHERE event_type = 'geomagnetic_storm' AND begins > ?
+				 LIMIT 1`
+			).bind(existingBound).first();
 
 			if (!existing) {
 				const severity = stormKp.kp_value >= 8 ? 'extreme'
@@ -37,10 +51,10 @@ export async function generateSummaries(db: D1Database): Promise<{ events_create
 					: stormKp.kp_value >= 5 ? 'moderate'
 					: 'low';
 
-				await db.prepare(`
-					INSERT INTO events (event_type, severity, begins, title, description, gnss_impact_level, gnss_advisory)
-					VALUES (?, ?, ?, ?, ?, ?, ?)
-				`).bind(
+				await db.prepare(
+					`INSERT INTO events (event_type, severity, begins, title, description, gnss_impact_level, gnss_advisory)
+					 VALUES (?, ?, ?, ?, ?, ?, ?)`
+				).bind(
 					'geomagnetic_storm',
 					severity,
 					stormKp.ts,
@@ -54,29 +68,28 @@ export async function generateSummaries(db: D1Database): Promise<{ events_create
 			}
 		}
 
-		// Check for elevated solar wind (speed > 600 km/s)
-		const fastWind = await db.prepare(`
-			SELECT ts, speed, bz FROM solarwind_summary
-			WHERE datetime(ts) > datetime('now', '-1 hour')
-			  AND speed > 600
-			ORDER BY ts DESC
-			LIMIT 1
-		`).first<{ ts: string; speed: number; bz: number }>();
+		// --- Event detection: fast solar wind (speed > 600 km/s in last hour) ---
+		const windBound = isoHoursAgo(1);
+		const fastWind = await db.prepare(
+			`SELECT ts, speed, bz FROM solarwind_summary
+			 WHERE ts > ? AND speed > 600
+			 ORDER BY ts DESC LIMIT 1`
+		).bind(windBound).first<{ ts: string; speed: number; bz: number }>();
 
 		if (fastWind) {
-			const existing = await db.prepare(`
-				SELECT id FROM events
-				WHERE event_type = 'fast_solar_wind'
-				  AND begins > datetime('now', '-6 hours')
-				LIMIT 1
-			`).first();
+			const existingBound = isoHoursAgo(6);
+			const existing = await db.prepare(
+				`SELECT id FROM events
+				 WHERE event_type = 'fast_solar_wind' AND begins > ?
+				 LIMIT 1`
+			).bind(existingBound).first();
 
 			if (!existing) {
 				const severity = fastWind.speed > 800 ? 'strong' : 'moderate';
-				await db.prepare(`
-					INSERT INTO events (event_type, severity, begins, title, description, gnss_impact_level)
-					VALUES (?, ?, ?, ?, ?, ?)
-				`).bind(
+				await db.prepare(
+					`INSERT INTO events (event_type, severity, begins, title, description, gnss_impact_level)
+					 VALUES (?, ?, ?, ?, ?, ?)`
+				).bind(
 					'fast_solar_wind',
 					severity,
 					fastWind.ts,
@@ -89,8 +102,23 @@ export async function generateSummaries(db: D1Database): Promise<{ events_create
 			}
 		}
 
+		// --- Retention cleanup ---
+		const kpCutoff = isoDaysAgo(RETENTION.kp_obs_days);
+		const swCutoff = isoDaysAgo(RETENTION.solarwind_summary_days);
+		const alertCutoff = isoDaysAgo(RETENTION.alerts_days);
+		const eventCutoff = isoDaysAgo(RETENTION.events_days);
+
+		const pruneResults = await db.batch([
+			db.prepare('DELETE FROM kp_obs WHERE ts < ?').bind(kpCutoff),
+			db.prepare('DELETE FROM solarwind_summary WHERE ts < ?').bind(swCutoff),
+			db.prepare('DELETE FROM alerts_classified WHERE raw_alert_id IN (SELECT id FROM alerts_raw WHERE issue_time < ?)').bind(alertCutoff),
+			db.prepare('DELETE FROM alerts_raw WHERE issue_time < ?').bind(alertCutoff),
+			db.prepare('DELETE FROM events WHERE begins < ?').bind(eventCutoff),
+		]);
+		const rowsPruned = pruneResults.reduce((sum, r) => sum + (r.meta?.changes ?? 0), 0);
+
 		await updateCronState(db, 'generate-summaries', 'ok', eventsCreated);
-		return { events_created: eventsCreated };
+		return { events_created: eventsCreated, rows_pruned: rowsPruned };
 	} catch (err) {
 		const msg = err instanceof Error ? err.message : 'Unknown error';
 		await updateCronState(db, 'generate-summaries', 'error', 0, msg);

@@ -1,4 +1,6 @@
-// constants.ts v0.6.0 — NOAA data source URLs, panel definitions, thresholds
+// constants.ts v0.7.0 — NOAA data source URLs, panel definitions, thresholds.
+// STATUS TTL raised 30s → 300s after 2026-03-15 postmortem (30s caused ~390M
+// row reads over 6 days from unbounded COUNT(*) queries).
 
 /** Base URL for all NOAA JSON product endpoints */
 export const NOAA_BASE = 'https://services.swpc.noaa.gov';
@@ -102,7 +104,7 @@ export const CACHE_TTL = {
 	FRAME_IMAGE: 900,
 	CHART_PNG: 900,
 	KP_ESTIMATED: 120,
-	STATUS: 30,
+	STATUS: 300,
 	NEWS: 300,
 	EVENTS: 180,
 	KP_SOURCES: 180,

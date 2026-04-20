@@ -1,4 +1,5 @@
-// charts.ts v0.3.0 — QuickChart.io client for server-rendered chart PNGs
+// charts.ts v0.4.0 — QuickChart.io client for server-rendered chart PNGs.
+// ISO 8601 bound in JS keeps the kp_obs.ts index in play (see 2026-03-15 D1 postmortem).
 
 import type { D1Database } from '@cloudflare/workers-types';
 import { queryAll } from './db';
@@ -10,18 +11,16 @@ interface KpChartRow {
 
 /** Build a QuickChart.io URL for a Kp bar chart */
 export async function buildKpChartUrl(db: D1Database, hours = 48): Promise<string> {
-	// datetime(ts) normalises ISO 8601 'T'/'Z' format so the comparison works correctly
-	// Filter out future timestamps — NOAA data includes predictions
+	const lowerBound = new Date(Date.now() - hours * 3600_000).toISOString();
+	const upperBound = new Date().toISOString();
 	const rows = await queryAll<KpChartRow>(
 		db,
 		`SELECT ts, kp_value as kp FROM kp_obs
-		 WHERE datetime(ts) > datetime('now', ? || ' hours')
-		   AND datetime(ts) <= datetime('now')
+		 WHERE ts > ? AND ts <= ?
 		 ORDER BY ts ASC`,
-		[`-${hours}`]
+		[lowerBound, upperBound]
 	);
 
-	// Format labels as short timestamps
 	const labels = rows.map(r => {
 		const d = new Date(r.ts);
 		return `${d.getUTCMonth() + 1}/${d.getUTCDate()} ${d.getUTCHours().toString().padStart(2, '0')}`;
@@ -29,7 +28,6 @@ export async function buildKpChartUrl(db: D1Database, hours = 48): Promise<strin
 
 	const values = rows.map(r => r.kp);
 
-	// Color each bar based on Kp severity
 	const colors = values.map(kp => {
 		if (kp >= 8) return '#ff4466';
 		if (kp >= 7) return '#f85149';
