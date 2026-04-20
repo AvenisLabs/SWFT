@@ -28,6 +28,33 @@ preserved as `summarylog_2026-03-19.md` before restore so the lessons learned we
 4. `GET /api/v1/events/kp` searchable history endpoint + mode indicator in UI
 5. Staged deploy + 48h D1 usage monitoring
 
+## 2026-04-20 — Deploy checklist authored (Phase 6, staging)
+
+Wrote `docs/DEPLOY.md` as the operational runbook for promoting Alpha to
+production. I don't run the deploy myself (production-affecting, credentials
+on the user's machine, cf-side rollback UI) — the checklist is the handoff.
+
+Covers:
+- Pre-flight (clean tree, all tests, wrangler auth, CF dashboard open).
+- Safety nets recap (Alpha branch, pre-revamp-baseline tag, untouched master).
+- Step-by-step: D1 migration -> cron worker deploy -> Pages deploy -> smoke
+  checks. Each step has expected output, verification queries, and rollback
+  notes.
+- First-60-min and 48-hour watch criteria with concrete D1 read/write budgets
+  and red flags.
+- Post-watch Alpha -> master merge procedure (fast-forward only).
+- Optional storm-day dry run via system_state manual update (lets us verify
+  the skip-gate transitions before a real G2 hits).
+
+### Key numbers to watch (from DEPLOY.md)
+- Worker invocations: 288/day expected (all modes — skip-gate absorbs).
+- Full batches: ~24/day in normal mode.
+- D1 reads budget: 100k-300k/day normal; red flag at 1M/day.
+- D1 writes budget: 10k-50k/day normal; red flag at 200k/day.
+
+Phase 6 remains open in the task list until the user executes the deploy and
+reports the 48h watch outcome.
+
 ## 2026-04-20 — Searchable Kp events API + monitoring-mode indicator (Phase 5)
 
 ### New search endpoint
