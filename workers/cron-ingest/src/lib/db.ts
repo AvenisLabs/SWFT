@@ -1,25 +1,15 @@
-// db.ts v0.4.0 — D1 insert helpers for cron worker
+// db.ts v0.5.0 — D1 insert helpers for cron worker.
+// kp_obs was dropped in migration 0007. Writes now go to kp_estimated (15-min
+// live buffer, 24h retention) and kp_events (Kp>=4 persistent log).
 
-/** Upsert Kp observation (ignore duplicate ts+source) */
-export async function upsertKpObs(
-	db: D1Database,
-	rows: Array<{ ts: string; kp_value: number }>
-): Promise<number> {
-	if (rows.length === 0) return 0;
-
-	let inserted = 0;
-	// Batch in groups of 50 to stay under D1 limits
-	for (let i = 0; i < rows.length; i += 50) {
-		const batch = rows.slice(i, i + 50);
-		const stmts = batch.map(r =>
-			db.prepare(
-				'INSERT OR IGNORE INTO kp_obs (ts, kp_value, source) VALUES (?, ?, ?)'
-			).bind(r.ts, r.kp_value, 'noaa')
-		);
-		const results = await db.batch(stmts);
-		inserted += results.reduce((sum, r) => sum + (r.meta?.changes ?? 0), 0);
-	}
-	return inserted;
+/** Classify a Kp value into NOAA G-scale storm class. */
+export function classifyStormClass(kp: number): 'active' | 'G1' | 'G2' | 'G3' | 'G4' | 'G5' {
+	if (kp >= 9) return 'G5';
+	if (kp >= 8) return 'G4';
+	if (kp >= 7) return 'G3';
+	if (kp >= 6) return 'G2';
+	if (kp >= 5) return 'G1';
+	return 'active'; // Kp 4 — below G1 but above the persistence threshold
 }
 
 /** Upsert solar wind summary (5-min downsampled) */
@@ -65,6 +55,70 @@ export async function upsertKpEstimated(
 	return inserted;
 }
 
+/** Append kp_events rows for any bucket where Kp >= 4 and ts is newer than the
+ *  last-seen watermark in system_state. Returns the number of rows inserted and
+ *  the new watermark (or the existing one if nothing was appended). */
+export async function appendKpEvents(
+	db: D1Database,
+	rows: Array<{ ts: string; kp_value: number; bz_nt?: number | null; speed_kms?: number | null }>,
+	source: string
+): Promise<{ inserted: number; newWatermark: string }> {
+	const watermarkRow = await db.prepare(
+		"SELECT value FROM system_state WHERE key = 'last_kp_events_ts_seen'"
+	).first<{ value: string }>();
+	const watermark = watermarkRow?.value ?? '';
+
+	const candidates = rows
+		.filter(r => r.kp_value >= 4 && (watermark === '' || r.ts > watermark))
+		.sort((a, b) => a.ts.localeCompare(b.ts));
+
+	if (candidates.length === 0) {
+		return { inserted: 0, newWatermark: watermark };
+	}
+
+	const createdAt = new Date().toISOString();
+	const stmts = candidates.map(r =>
+		db.prepare(
+			`INSERT INTO kp_events (ts, kp_value, source, storm_class, bz_nt, speed_kms, created_at)
+			 VALUES (?, ?, ?, ?, ?, ?, ?)`
+		).bind(
+			r.ts,
+			r.kp_value,
+			source,
+			classifyStormClass(r.kp_value),
+			r.bz_nt ?? null,
+			r.speed_kms ?? null,
+			createdAt
+		)
+	);
+
+	let inserted = 0;
+	for (let i = 0; i < stmts.length; i += 50) {
+		const results = await db.batch(stmts.slice(i, i + 50));
+		inserted += results.reduce((sum, r) => sum + (r.meta?.changes ?? 0), 0);
+	}
+
+	const newWatermark = candidates[candidates.length - 1].ts;
+	await setSystemState(db, 'last_kp_events_ts_seen', newWatermark);
+	return { inserted, newWatermark };
+}
+
+/** Read a single system_state value (returns '' if key is missing). */
+export async function getSystemState(db: D1Database, key: string): Promise<string> {
+	const row = await db.prepare(
+		'SELECT value FROM system_state WHERE key = ?'
+	).bind(key).first<{ value: string }>();
+	return row?.value ?? '';
+}
+
+/** Upsert a system_state value with the current timestamp. */
+export async function setSystemState(db: D1Database, key: string, value: string): Promise<void> {
+	await db.prepare(
+		`INSERT INTO system_state (key, value, updated_at) VALUES (?, ?, ?)
+		 ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`
+	).bind(key, value, new Date().toISOString()).run();
+}
+
 /** Insert raw alert if content_hash is new, returns the new row id or null */
 export async function insertAlert(
 	db: D1Database,
@@ -74,7 +128,7 @@ export async function insertAlert(
 		'INSERT OR IGNORE INTO alerts_raw (issue_time, message, product_id, raw_source, content_hash) VALUES (?, ?, ?, ?, ?)'
 	).bind(alert.issue_time, alert.message, alert.product_id, alert.raw_source, alert.content_hash).run();
 
-	if ((result.meta?.changes ?? 0) === 0) return null; // duplicate
+	if ((result.meta?.changes ?? 0) === 0) return null;
 	return result.meta?.last_row_id ?? null;
 }
 

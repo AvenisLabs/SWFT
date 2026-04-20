@@ -1,7 +1,7 @@
-// kp.ts v0.11.0 — Kp queries + summary logic.
-// Uses precomputed ISO 8601 bounds in JS so SQLite can use the ts index instead of
-// forcing a full scan (see 2026-03-15 D1 postmortem). kp_forecast keeps datetime()
-// because NOAA stores its forecast_time in space-separated format, not ISO.
+// kp.ts v0.12.0 — Kp queries + summary logic.
+// kp_obs was dropped in migration 0007 — getRecentKp now reads from kp_estimated
+// (the 15-min live buffer, 24h retention). kp_forecast keeps datetime() because
+// NOAA stores its forecast_time in space-separated format, not ISO.
 
 import type { D1Database } from '@cloudflare/workers-types';
 import { queryAll, queryFirst } from './db';
@@ -13,13 +13,16 @@ function isoHoursFromNow(offsetHours: number): string {
 	return new Date(Date.now() + offsetHours * 3600_000).toISOString();
 }
 
-/** Fetch recent Kp observations (default: last 48h) */
-export async function getRecentKp(db: D1Database, hours = 48): Promise<KpDataPoint[]> {
-	const lowerBound = isoHoursFromNow(-hours);
+/** Fetch recent Kp readings from the kp_estimated buffer (default: last 24h).
+ *  With 15-min resolution, 24h yields up to 96 rows. */
+export async function getRecentKp(db: D1Database, hours = 24): Promise<KpDataPoint[]> {
+	const cappedHours = Math.min(hours, 24);
+	const lowerBound = isoHoursFromNow(-cappedHours);
 	const upperBound = new Date().toISOString();
 	return queryAll<KpDataPoint>(
 		db,
-		`SELECT ts, kp_value as kp, source FROM kp_obs
+		`SELECT ts, kp_value as kp, COALESCE(source, 'noaa') as source
+		 FROM kp_estimated
 		 WHERE ts > ? AND ts <= ?
 		 ORDER BY ts DESC`,
 		[lowerBound, upperBound]

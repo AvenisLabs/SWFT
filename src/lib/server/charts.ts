@@ -1,5 +1,6 @@
-// charts.ts v0.4.0 — QuickChart.io client for server-rendered chart PNGs.
-// ISO 8601 bound in JS keeps the kp_obs.ts index in play (see 2026-03-15 D1 postmortem).
+// charts.ts v0.5.0 — QuickChart.io client for server-rendered chart PNGs.
+// Reads from kp_estimated (15-min buffer, 24h retention) since kp_obs was dropped
+// in migration 0007. Default window reduced 48h -> 24h to match buffer retention.
 
 import type { D1Database } from '@cloudflare/workers-types';
 import { queryAll } from './db';
@@ -9,13 +10,15 @@ interface KpChartRow {
 	kp: number;
 }
 
-/** Build a QuickChart.io URL for a Kp bar chart */
-export async function buildKpChartUrl(db: D1Database, hours = 48): Promise<string> {
-	const lowerBound = new Date(Date.now() - hours * 3600_000).toISOString();
+/** Build a QuickChart.io URL for a Kp bar chart.
+ *  Pulls from kp_estimated (15-min buckets, up to 24h retention). */
+export async function buildKpChartUrl(db: D1Database, hours = 24): Promise<string> {
+	const cappedHours = Math.min(hours, 24);
+	const lowerBound = new Date(Date.now() - cappedHours * 3600_000).toISOString();
 	const upperBound = new Date().toISOString();
 	const rows = await queryAll<KpChartRow>(
 		db,
-		`SELECT ts, kp_value as kp FROM kp_obs
+		`SELECT ts, kp_value as kp FROM kp_estimated
 		 WHERE ts > ? AND ts <= ?
 		 ORDER BY ts ASC`,
 		[lowerBound, upperBound]
@@ -75,7 +78,7 @@ export async function buildKpChartUrl(db: D1Database, hours = 48): Promise<strin
 }
 
 /** Fetch chart PNG from QuickChart.io */
-export async function fetchKpChartPng(db: D1Database, hours = 48): Promise<Response> {
+export async function fetchKpChartPng(db: D1Database, hours = 24): Promise<Response> {
 	const url = await buildKpChartUrl(db, hours);
 	const res = await fetch(url);
 

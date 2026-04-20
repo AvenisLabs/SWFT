@@ -1,7 +1,7 @@
 // GET /api/v1/status — Health check with ingestion timestamps.
-// v0.2.0 — Bounded COUNTs (last 7 days only) use the ts index instead of scanning
-// the whole table. Pre-fix, three unbounded COUNT(*) calls at a 30s TTL accounted
-// for ~54% of total D1 row reads (see 2026-03-15 postmortem).
+// v0.3.0 — kp_row_count replaced by kp_events_row_count (counts the persistent
+// Kp>=4 log, which grows slowly and is cheap to count in full). Alert + solar wind
+// counts stay bounded to 7 days so the index is used.
 
 import type { RequestHandler } from './$types';
 import { getDb, queryFirst, queryAll } from '$lib/server/db';
@@ -15,12 +15,12 @@ export const GET: RequestHandler = async ({ platform, request }) => {
 			const db = getDb(platform);
 			const sevenDaysAgo = new Date(Date.now() - 7 * 86400_000).toISOString();
 
-			const [cronStates, kpCount, alertCount, swCount] = await Promise.all([
+			const [cronStates, kpEventCount, alertCount, swCount] = await Promise.all([
 				queryAll<{ task_name: string; last_run: string; last_status: string }>(
 					db, 'SELECT task_name, last_run, last_status FROM cron_state'
 				),
 				queryFirst<{ cnt: number }>(
-					db, 'SELECT COUNT(*) as cnt FROM kp_obs WHERE ts > ?', [sevenDaysAgo]
+					db, 'SELECT COUNT(*) as cnt FROM kp_events'
 				),
 				queryFirst<{ cnt: number }>(
 					db, 'SELECT COUNT(*) as cnt FROM alerts_raw WHERE issue_time > ?', [sevenDaysAgo]
@@ -35,10 +35,10 @@ export const GET: RequestHandler = async ({ platform, request }) => {
 
 			const data: StatusResponse = {
 				status: hasErrors ? 'degraded' : 'ok',
-				last_kp_ingest: cronMap.get('ingest-kp')?.last_run,
+				last_kp_ingest: cronMap.get('ingest-kp-estimated')?.last_run ?? cronMap.get('ingest-kp')?.last_run,
 				last_alert_ingest: cronMap.get('ingest-alerts')?.last_run,
 				last_solarwind_ingest: cronMap.get('ingest-solarwind')?.last_run,
-				kp_row_count: kpCount?.cnt ?? 0,
+				kp_events_row_count: kpEventCount?.cnt ?? 0,
 				alert_row_count: alertCount?.cnt ?? 0,
 				solarwind_row_count: swCount?.cnt ?? 0,
 				version: APP_VERSION,

@@ -17,7 +17,7 @@ interface LatestConditions {
 
 /** Fetch the latest space weather conditions from D1 */
 async function getLatestConditions(db: D1Database): Promise<LatestConditions> {
-	// Use real-time estimated Kp (15-min intervals) instead of 3-hour kp_obs
+	// Use real-time estimated Kp (15-min intervals from kp_estimated — the 24h buffer)
 	const [kpRow, swRow] = await Promise.all([
 		queryFirst<{ kp_value: number; ts: string }>(
 			db, 'SELECT kp_value, ts FROM kp_estimated ORDER BY ts DESC LIMIT 1'

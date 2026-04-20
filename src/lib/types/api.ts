@@ -1,4 +1,4 @@
-// api.ts v0.7.0 — API response contracts for /api/v1/* endpoints
+// api.ts v0.8.0 — API response contracts for /api/v1/* endpoints
 
 /** Standard envelope wrapping all API responses */
 export interface ApiResponse<T> {
@@ -130,10 +130,22 @@ export interface StatusResponse {
 	last_kp_ingest?: string;
 	last_alert_ingest?: string;
 	last_solarwind_ingest?: string;
-	kp_row_count: number;
-	alert_row_count: number;
-	solarwind_row_count: number;
+	kp_events_row_count: number;       // total persistent Kp>=4 events (all-time)
+	alert_row_count: number;            // alerts in the last 7 days
+	solarwind_row_count: number;        // solar wind samples in the last 7 days
 	version: string;
+}
+
+/** A single row from the kp_events persistent log (Kp >= 4). */
+export interface KpEventRow {
+	id: number;
+	ts: string;              // ISO 8601 bucket start
+	kp_value: number;
+	source: string;
+	storm_class: 'active' | 'G1' | 'G2' | 'G3' | 'G4' | 'G5';
+	bz_nt: number | null;
+	speed_kms: number | null;
+	created_at: string;
 }
 
 /** Discovered external link with override fields */

@@ -1,12 +1,10 @@
-// generate-summaries.ts v0.4.0 — Derived summaries + retention cleanup.
-// Retention cleanup was added after 2026-03-15 postmortem — unbounded table growth
-// was responsible for ~14% of the 729M row-read disaster. Every-hour run prunes
-// old rows so queries stay cheap.
+// generate-summaries.ts v0.5.0 — Derived summaries + retention cleanup.
+// Storm detection now reads from kp_estimated (the 15-min live buffer, 24h retention)
+// since kp_obs was dropped in migration 0007. Retention list updated accordingly.
 
 import { updateCronState } from '../lib/db';
 
 const RETENTION = {
-	kp_obs_days: 30,
 	solarwind_summary_days: 7,
 	alerts_days: 90,
 	events_days: 90,
@@ -24,10 +22,10 @@ export async function generateSummaries(db: D1Database): Promise<{ events_create
 	try {
 		let eventsCreated = 0;
 
-		// --- Event detection: geomagnetic storm (Kp >= 5 in last 3 hours) ---
+		// --- Event detection: geomagnetic storm (Kp >= 5 in last 3 hours of 15-min data) ---
 		const stormBound = isoHoursAgo(3);
 		const stormKp = await db.prepare(
-			`SELECT ts, kp_value FROM kp_obs
+			`SELECT ts, kp_value FROM kp_estimated
 			 WHERE ts > ? AND kp_value >= 5
 			 ORDER BY ts DESC LIMIT 1`
 		).bind(stormBound).first<{ ts: string; kp_value: number }>();
@@ -103,13 +101,11 @@ export async function generateSummaries(db: D1Database): Promise<{ events_create
 		}
 
 		// --- Retention cleanup ---
-		const kpCutoff = isoDaysAgo(RETENTION.kp_obs_days);
 		const swCutoff = isoDaysAgo(RETENTION.solarwind_summary_days);
 		const alertCutoff = isoDaysAgo(RETENTION.alerts_days);
 		const eventCutoff = isoDaysAgo(RETENTION.events_days);
 
 		const pruneResults = await db.batch([
-			db.prepare('DELETE FROM kp_obs WHERE ts < ?').bind(kpCutoff),
 			db.prepare('DELETE FROM solarwind_summary WHERE ts < ?').bind(swCutoff),
 			db.prepare('DELETE FROM alerts_classified WHERE raw_alert_id IN (SELECT id FROM alerts_raw WHERE issue_time < ?)').bind(alertCutoff),
 			db.prepare('DELETE FROM alerts_raw WHERE issue_time < ?').bind(alertCutoff),
@@ -126,7 +122,6 @@ export async function generateSummaries(db: D1Database): Promise<{ events_create
 	}
 }
 
-/** Return GNSS operator advisory text based on impact level */
 function getGnssAdvisory(level: string): string {
 	switch (level) {
 		case 'severe':

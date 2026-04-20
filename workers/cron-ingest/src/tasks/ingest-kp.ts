@@ -1,14 +1,14 @@
-// ingest-kp.ts v0.2.0 — Kp index + forecast ingestion task
+// ingest-kp.ts v0.3.0 — Kp forecast ingestion only.
+// kp_obs was dropped in migration 0007 (the 3-hour observations were redundant
+// with the 15-min kp_estimated feed). This task now ingests forecast data only.
 
-import { fetchKpIndex, fetchKpForecast } from '../lib/noaa-client';
-import { upsertKpObs, updateCronState } from '../lib/db';
+import { fetchKpForecast } from '../lib/noaa-client';
+import { updateCronState } from '../lib/db';
 
 export async function ingestKp(db: D1Database): Promise<{ inserted: number }> {
 	try {
-		const kpData = await fetchKpIndex();
-		const inserted = await upsertKpObs(db, kpData);
+		let inserted = 0;
 
-		// Also ingest forecast data
 		const forecast = await fetchKpForecast();
 		if (forecast.length > 0) {
 			const stmts = forecast.map(f =>
@@ -17,9 +17,9 @@ export async function ingestKp(db: D1Database): Promise<{ inserted: number }> {
 					 VALUES (?, ?, ?, 'noaa', datetime('now'))`
 				).bind(f.forecast_time, f.kp_value, f.noaa_scale)
 			);
-			// Batch in groups of 50
 			for (let i = 0; i < stmts.length; i += 50) {
-				await db.batch(stmts.slice(i, i + 50));
+				const results = await db.batch(stmts.slice(i, i + 50));
+				inserted += results.reduce((sum, r) => sum + (r.meta?.changes ?? 0), 0);
 			}
 		}
 

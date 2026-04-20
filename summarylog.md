@@ -28,6 +28,56 @@ preserved as `summarylog_2026-03-19.md` before restore so the lessons learned we
 4. `GET /api/v1/events/kp` searchable history endpoint + mode indicator in UI
 5. Staged deploy + 48h D1 usage monitoring
 
+## 2026-04-20 — Threshold tables + system_state + drop kp_obs (Phase 3)
+
+Introduced the persistent-storm-log / transient-buffer split and the dedicated
+system-state key/value table that the upcoming cron rewrite (Phase 4) will use
+for mode gating.
+
+### Migration 0007_threshold_events.sql
+- `kp_events` — append-only log, Kp>=4 only. Columns: id (autoincrement), ts,
+  kp_value, source, storm_class (active|G1|G2|G3|G4|G5), bz_nt, speed_kms,
+  created_at. Indexes on ts, kp_value, storm_class.
+- `system_state(key, value, updated_at)` — seeded with `active_mode='normal'`,
+  `storm_until_iso=''`, `elevated_until_iso=''`, `last_kp_events_ts_seen=''`.
+- `DROP TABLE kp_obs` — clean start (month-old data considered stale).
+
+### No `kp_recent` after all
+Realised mid-plan that `kp_estimated` already was a 15-min rolling buffer, just
+with 12h retention. Rather than creating a near-duplicate table, retention is
+expanded to 24h in ingest code. One less table to reason about.
+
+### Cron worker changes
+- `workers/cron-ingest/src/lib/db.ts` v0.4.0 -> v0.5.0 — removed `upsertKpObs`.
+  Added `classifyStormClass`, `appendKpEvents` (respects `last_kp_events_ts_seen`
+  watermark so rerunning the ingest doesn't double-append), `getSystemState`,
+  `setSystemState`.
+- `workers/cron-ingest/src/tasks/ingest-kp.ts` v0.2.0 -> v0.3.0 — now ingests
+  kp_forecast only. kp_obs writes removed entirely.
+- `workers/cron-ingest/src/tasks/ingest-kp-estimated.ts` v0.9.0 -> v0.10.0 —
+  buffer retention 12h -> 24h, appends Kp>=4 buckets to kp_events enriched with
+  current Bz/speed from solarwind_summary (nearest-neighbour within 15 min).
+- `workers/cron-ingest/src/tasks/generate-summaries.ts` v0.4.0 -> v0.5.0 —
+  storm detection reads from kp_estimated; kp_obs retention line removed.
+
+### SvelteKit readers redirected
+- `src/lib/server/kp.ts` v0.11.0 -> v0.12.0 — `getRecentKp()` now reads kp_estimated,
+  default window 24h (capped).
+- `src/lib/server/charts.ts` v0.4.0 -> v0.5.0 — reads kp_estimated, default 24h (capped).
+- `src/lib/server/gnss-risk.ts` — comment updated (no code change).
+
+### Status API reshaped
+- `src/routes/api/v1/status/+server.ts` v0.2.0 -> v0.3.0 — `kp_row_count` replaced
+  by `kp_events_row_count` (full table count since the table grows slowly).
+  `last_kp_ingest` now prefers `ingest-kp-estimated` timestamp.
+- `src/lib/types/api.ts` v0.7.0 -> v0.8.0 — StatusResponse field rename,
+  new `KpEventRow` interface.
+
+### Verification
+- 57/57 tests pass.
+- Production build clean.
+- `svelte-check found 0 errors and 0 warnings`.
+
 ## 2026-04-20 — Apply March 15 D1 correctness fixes (Phase 2)
 
 Ported the known-correct patterns from the never-committed March 15 rescue into the
