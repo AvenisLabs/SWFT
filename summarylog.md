@@ -28,6 +28,62 @@ preserved as `summarylog_2026-03-19.md` before restore so the lessons learned we
 4. `GET /api/v1/events/kp` searchable history endpoint + mode indicator in UI
 5. Staged deploy + 48h D1 usage monitoring
 
+## 2026-04-20 — Dynamic-rate cron worker with skip-gate (Phase 4)
+
+Replaced the three-schedule cron (`*/3 + */5 + */15`) with a single `*/5` fire
+and an in-worker skip-gate. Mode is read from `system_state` on every tick:
+storm runs every fire, elevated acts when `minute % 15 === 0`, normal acts only
+when `minute === 0`. Skip path is ~1ms (one D1 read, no NOAA fetches).
+
+### Pure state machine — unit-testable
+- `workers/cron-ingest/src/lib/evaluate-mode.ts` NEW — `evaluateMode()`,
+  `computeEffectiveMode()`, `shouldActForMode()`. No D1 refs; tests import it
+  directly. Storm triggers: Kp>=6 OR active G2+ alert. Elevated triggers: Kp>=5
+  OR active G1 alert (storm implies elevated floor). Both use a 12-hour
+  minimum hold extended by alert end time when longer — hysteresis keeps a
+  brief Kp dip from flapping us out of storm tracking.
+- `workers/cron-ingest/src/lib/storm-class.ts` NEW — extracted from db.ts so
+  the unit test can import it without pulling Workers globals.
+
+### Tests (+30)
+- `tests/storm-class.test.ts` NEW — 7 G-scale boundary tests.
+- `tests/evaluate-mode.test.ts` NEW — 23 transition tests: triggers by Kp,
+  triggers by alert, null-Kp resilience, hysteresis on Kp dips, storm->
+  elevated->normal passive downgrade, promotion from elevated to storm.
+- Total test count: 57 -> 87.
+
+### Cron worker rewrite
+- `workers/cron-ingest/src/index.ts` v0.8.0 -> v1.0.0 — scheduled handler reads
+  mode, decides skip, runs full batch only when gate opens. Full batch: all
+  four ingest tasks in parallel; then re-evaluate mode from fresh data via
+  `evaluateMode()` and persist; then `generateSummaries` for derived events +
+  retention. Transitions are logged. `/health` HTTP endpoint now returns
+  current mode + expiry timestamps.
+- `workers/cron-ingest/wrangler.toml` — crons reduced from 4 expressions to 2
+  (`*/5` + weekly link check).
+
+### Per-bucket Bz/speed enrichment (deferred from Phase 3 review)
+- `workers/cron-ingest/src/tasks/ingest-kp-estimated.ts` v0.10.0 -> v0.11.0 —
+  fetches a 3-hour solar-wind window once, then looks up the nearest-neighbour
+  reading (30-min tolerance) for each appended kp_events bucket. Accurate
+  per-bucket enrichment even during first-run catch-up with many stale buckets.
+
+### db.ts
+- `workers/cron-ingest/src/lib/db.ts` v0.5.0 -> v0.6.0 — `classifyStormClass`
+  moved to ./storm-class.ts; imported back from there.
+
+### Projected cron usage
+- Worker invocations/day: 288 (was 864 across three schedules).
+- Full batches/day in normal mode: 24 (down from 288 previously doing
+  meaningful work). Elevated: 96. Storm: 288.
+- D1 read/write during skip: 1 read, 0 writes.
+
+### Verification
+- 87/87 tests pass.
+- `svelte-check` 0 errors.
+- `tsc --noEmit` in workers/cron-ingest clean.
+- Production build clean.
+
 ## 2026-04-20 — Threshold tables + system_state + drop kp_obs (Phase 3)
 
 Introduced the persistent-storm-log / transient-buffer split and the dedicated

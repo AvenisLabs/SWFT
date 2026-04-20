@@ -1,16 +1,10 @@
-// db.ts v0.5.0 — D1 insert helpers for cron worker.
+// db.ts v0.6.0 — D1 insert helpers for cron worker.
 // kp_obs was dropped in migration 0007. Writes now go to kp_estimated (15-min
 // live buffer, 24h retention) and kp_events (Kp>=4 persistent log).
+// classifyStormClass was extracted to ./storm-class.ts so it's unit-testable
+// without pulling in Workers globals.
 
-/** Classify a Kp value into NOAA G-scale storm class. */
-export function classifyStormClass(kp: number): 'active' | 'G1' | 'G2' | 'G3' | 'G4' | 'G5' {
-	if (kp >= 9) return 'G5';
-	if (kp >= 8) return 'G4';
-	if (kp >= 7) return 'G3';
-	if (kp >= 6) return 'G2';
-	if (kp >= 5) return 'G1';
-	return 'active'; // Kp 4 — below G1 but above the persistence threshold
-}
+import { classifyStormClass } from './storm-class';
 
 /** Upsert solar wind summary (5-min downsampled) */
 export async function upsertSolarWind(
