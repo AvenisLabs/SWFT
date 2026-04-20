@@ -19,6 +19,11 @@ export const GET: RequestHandler = async ({ platform, request }) => {
 				queryAll<{ task_name: string; last_run: string; last_status: string }>(
 					db, 'SELECT task_name, last_run, last_status FROM cron_state'
 				),
+				// Unbounded COUNT on kp_events is deliberate: the append-only log only
+				// admits Kp>=4 buckets, so an upper-bound estimate is a few thousand
+				// rows per active solar year. A "since launch" count is more useful
+				// than a rolling window here, and the table is far too small for this
+				// COUNT to matter (the March 15 postmortem rule targeted large tables).
 				queryFirst<{ cnt: number }>(
 					db, 'SELECT COUNT(*) as cnt FROM kp_events'
 				),

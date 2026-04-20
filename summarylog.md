@@ -78,6 +78,17 @@ expanded to 24h in ingest code. One less table to reason about.
 - Production build clean.
 - `svelte-check found 0 errors and 0 warnings`.
 
+### Follow-up after Phase 3 review
+- `src/routes/api/v1/kp/+server.ts` v0.1.0 -> v0.2.0 — `?hours` upper bound
+  168 -> 24 to match the new buffer retention. Default 48 -> 24.
+- `src/routes/api/v1/charts/kp/+server.ts` v0.1.0 -> v0.2.0 — same clamp change.
+- `src/routes/api/v1/status/+server.ts` — comment added explaining why the
+  `COUNT(*) FROM kp_events` query stays unbounded (append-only log of Kp>=4
+  buckets, few thousand rows per active solar year — the March 15 rule targets
+  large tables).
+- Deferred: per-bucket Bz/speed enrichment in `appendKpEvents` and tests for
+  `classifyStormClass` (will land alongside Phase 4's `evaluateMode` tests).
+
 ## 2026-04-20 — Apply March 15 D1 correctness fixes (Phase 2)
 
 Ported the known-correct patterns from the never-committed March 15 rescue into the

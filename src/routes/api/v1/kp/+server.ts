@@ -1,5 +1,7 @@
 // GET /api/v1/kp — Kp index timeseries
-// v0.1.0
+// v0.2.0 — ?hours upper bound lowered 168 -> 24 to match kp_estimated buffer
+// retention (kp_obs was dropped in migration 0007). Historical search beyond 24h
+// belongs on the upcoming /api/v1/events/kp endpoint (Phase 5).
 
 import type { RequestHandler } from './$types';
 import { getDb } from '$lib/server/db';
@@ -11,8 +13,8 @@ export const GET: RequestHandler = async ({ platform, url, request }) => {
 	return withCache(request, 'kp-timeseries', CACHE_TTL.KP_SUMMARY, async () => {
 		try {
 			const db = getDb(platform);
-			const hours = parseInt(url.searchParams.get('hours') ?? '48', 10);
-			const clamped = Math.min(Math.max(hours, 1), 168); // max 7 days
+			const hours = parseInt(url.searchParams.get('hours') ?? '24', 10);
+			const clamped = Math.min(Math.max(hours, 1), 24);
 
 			const data = await getRecentKp(db, clamped);
 			const freshest = data.length > 0 ? data[0].ts : null;
