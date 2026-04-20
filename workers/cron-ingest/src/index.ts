@@ -1,4 +1,4 @@
-// index.ts v1.0.0 — SWFT cron worker entry with dynamic skip-gate.
+// index.ts v1.1.0 — SWFT cron worker entry with dynamic skip-gate.
 //
 // Cron configuration: ONE schedule declared (`*/5 * * * *`, the fastest rate
 // we ever need) plus the weekly link check. Every `*/5` fire reads monitoring
@@ -167,37 +167,10 @@ export default {
 			}), { headers: { 'Content-Type': 'application/json' } });
 		}
 
-		if (url.pathname === '/check-links') {
-			try {
-				const result = await checkExternalLinks(env.DB, env.SITE_URL, env.DISCORD_WEBHOOK_URL, 'manual');
-				return new Response(JSON.stringify({ status: 'ok', ...result }), {
-					headers: { 'Content-Type': 'application/json' },
-				});
-			} catch (err) {
-				const msg = err instanceof Error ? err.message : 'Unknown error';
-				return new Response(JSON.stringify({ status: 'error', error: msg }), {
-					status: 500,
-					headers: { 'Content-Type': 'application/json' },
-				});
-			}
-		}
-
-		// Manual full-batch trigger for ad-hoc runs (also re-evaluates mode).
-		if (url.pathname === '/ingest-kp' || url.pathname === '/run') {
-			try {
-				await runFullBatch(env, new Date());
-				const state = await readModeState(env.DB);
-				return new Response(JSON.stringify({ status: 'ok', mode: state.activeMode }), {
-					headers: { 'Content-Type': 'application/json' },
-				});
-			} catch (err) {
-				const msg = err instanceof Error ? err.message : 'Unknown error';
-				return new Response(JSON.stringify({ status: 'error', error: msg }), {
-					status: 500,
-					headers: { 'Content-Type': 'application/json' },
-				});
-			}
-		}
+		// Unauthenticated write-triggers (/check-links, /ingest-kp, /run) were
+		// removed in v1.1.0 — anyone finding the worker URL could hammer NOAA and
+		// burn the D1 budget. Manual runs belong on `wrangler dev` or a local
+		// `wrangler deployments trigger` from the developer's machine.
 
 		return new Response('SWFT Cron Ingest Worker', { status: 200 });
 	},

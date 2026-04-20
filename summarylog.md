@@ -84,6 +84,21 @@ when `minute === 0`. Skip path is ~1ms (one D1 read, no NOAA fetches).
 - `tsc --noEmit` in workers/cron-ingest clean.
 - Production build clean.
 
+### Follow-up after Phase 4 review
+- `workers/cron-ingest/src/lib/solar-wind-match.ts` NEW — `nearestSolarWind`
+  extracted from ingest-kp-estimated.ts so it's testable without Workers globals.
+- `workers/cron-ingest/src/tasks/ingest-kp-estimated.ts` v0.11.0 -> v0.12.0 —
+  solar-wind lookback widened 3h -> 25h (covers full kp_estimated retention so
+  first-run catch-up still finds neighbours for older Kp>=4 buckets).
+- `tests/solar-wind-match.test.ts` NEW — 7 tests (empty input, exact match,
+  left edge, right edge, out-of-tolerance, null fields, custom tolerance).
+- `workers/cron-ingest/src/index.ts` v1.0.0 -> v1.1.0 — removed the three
+  unauthenticated HTTP write-triggers (`/check-links`, `/ingest-kp`, `/run`).
+  Cron runs reliably on its own; manual runs go through `wrangler dev` locally.
+  Closes a pre-existing security exposure where anyone with the worker URL
+  could spam full ingests.
+- Test count: 87 -> 94.
+
 ## 2026-04-20 — Threshold tables + system_state + drop kp_obs (Phase 3)
 
 Introduced the persistent-storm-log / transient-buffer split and the dedicated
