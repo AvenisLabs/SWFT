@@ -1,7 +1,18 @@
-// noaa-client.ts v0.6.0 — NOAA + GFZ + BoM fetch helpers with fallback sources for cron ingestion
+// noaa-client.ts v0.7.0 — NOAA + GFZ + BoM fetch helpers with fallback sources for cron ingestion
 
 const NOAA_BASE = 'https://services.swpc.noaa.gov';
 const GFZ_BASE = 'https://kp.gfz.de';
+
+/** Convert NOAA's space-separated UTC timestamp ('YYYY-MM-DD HH:MM:SS[.fff]')
+ *  to ISO 8601 ('YYYY-MM-DDTHH:MM:SS[.fff]Z'). Critical for downstream string
+ *  comparisons against ISO bounds — ASCII space (32) sorts BEFORE 'T' (84), so
+ *  mixing the two formats in `WHERE ts > ?` or `arr.filter(x => x.ts > cutoff)`
+ *  silently drops rows. Returns the raw input unchanged if it already contains
+ *  a 'T' separator or 'Z' suffix (defensive — NOAA may normalise eventually). */
+function noaaTsToIso(raw: string): string {
+	if (raw.includes('T') || raw.endsWith('Z')) return raw;
+	return raw.replace(' ', 'T') + 'Z';
+}
 
 /** Fetch JSON from a URL with timeout and error handling */
 async function fetchJson<T>(url: string, timeoutMs = 15_000): Promise<T> {
@@ -75,7 +86,7 @@ export async function fetchPlasma(): Promise<ParsedPlasma[]> {
 	const raw = await fetchNoaa<string[][]>('/products/solar-wind/plasma-7-day.json');
 
 	return raw.slice(1).map(row => ({
-		ts: row[0],
+		ts: noaaTsToIso(row[0]),
 		density: row[1] ? parseFloat(row[1]) : null,
 		speed: row[2] ? parseFloat(row[2]) : null,
 		temperature: row[3] ? parseFloat(row[3]) : null,
@@ -94,7 +105,7 @@ export async function fetchMag(): Promise<ParsedMag[]> {
 	const raw = await fetchNoaa<string[][]>('/products/solar-wind/mag-7-day.json');
 
 	return raw.slice(1).map(row => ({
-		ts: row[0],
+		ts: noaaTsToIso(row[0]),
 		bz: row[3] ? parseFloat(row[3]) : null, // bz_gsm is index 3
 		bt: row[6] ? parseFloat(row[6]) : null,  // bt is index 6
 	})).filter(r => !isNaN(new Date(r.ts).getTime()));
@@ -115,7 +126,7 @@ export async function fetchAlerts(): Promise<ParsedAlert[]> {
 
 	return raw.map(a => ({
 		product_id: a.product_id,
-		issue_time: a.issue_datetime,
+		issue_time: noaaTsToIso(a.issue_datetime),
 		message: a.message,
 	}));
 }

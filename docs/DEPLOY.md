@@ -176,7 +176,7 @@ Metrics to check at 24h and 48h on the CF dashboard:
 | Metric | Normal-mode budget (per day) | Elevated-mode (active alert day) |
 |---|---|---|
 | Worker invocations | 288 | 288 (same — skip-gate absorbs) |
-| Full batches executed | ~24 | ~24–96 |
+| Full batches executed | ~48 | ~48–96 |
 | D1 reads | 100k–300k | +20% during elevated hours |
 | D1 writes | 10k–50k | +30% during elevated hours |
 | 95p latency `/api/v1/*` | <200 ms | same |

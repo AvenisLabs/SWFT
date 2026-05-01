@@ -1,12 +1,12 @@
-// index.ts v1.1.0 — SWFT cron worker entry with dynamic skip-gate.
+// index.ts v1.2.0 — SWFT cron worker entry with dynamic skip-gate.
 //
 // Cron configuration: ONE schedule declared (`*/5 * * * *`, the fastest rate
 // we ever need) plus the weekly link check. Every `*/5` fire reads monitoring
 // mode from system_state and decides whether to do real work:
 //
-//   storm    — act on every fire (every 5 min)
+//   storm    — act on every fire        (every 5 min)
 //   elevated — act when minute % 15 === 0 (every 15 min)
-//   normal   — act when minute === 0       (every hour)
+//   normal   — act when minute % 30 === 0 (every 30 min — :00 and :30)
 //
 // Mode upgrades happen inside the full-run path: after ingests settle we
 // re-evaluate mode from fresh Kp + active alerts and persist. Downgrades are

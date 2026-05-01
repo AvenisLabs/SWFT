@@ -1,10 +1,10 @@
-// evaluate-mode.ts v0.1.0 — Pure state-transition logic for the dynamic-rate
+// evaluate-mode.ts v0.2.0 — Pure state-transition logic for the dynamic-rate
 // cron worker. No D1 references so it can be unit-tested in isolation.
 //
 // Three tiers drive how often the worker actually executes:
 //   storm     — run every 5 min   (triggered by Kp>=6 OR active G2+ alert)
 //   elevated  — run every 15 min  (triggered by Kp>=5 OR active G1 alert)
-//   normal    — run every hour    (everything else)
+//   normal    — run every 30 min  (top + half hour, everything else)
 //
 // Upgrades happen on-the-fly. Downgrades never happen directly — instead, each
 // tier has a `*_until_iso` expiry timestamp. When a trigger fires, the expiry
@@ -105,7 +105,7 @@ export function evaluateMode({ kp, activeAlerts, now, current }: ModeInputs): Mo
 export function shouldActForMode(mode: ActiveMode, minuteOfHour: number): boolean {
 	if (mode === 'storm') return true;
 	if (mode === 'elevated') return minuteOfHour % 15 === 0;
-	return minuteOfHour === 0; // normal
+	return minuteOfHour % 30 === 0; // normal — :00 and :30
 }
 
 /** Lex-compare ISO strings to find the max. Empty strings are treated as the

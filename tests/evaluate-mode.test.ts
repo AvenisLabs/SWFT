@@ -32,9 +32,12 @@ describe('shouldActForMode', () => {
 		expect(shouldActForMode('elevated', 10)).toBe(false);
 	});
 
-	it('normal acts only at the top of the hour', () => {
+	it('normal acts at :00 and :30', () => {
 		expect(shouldActForMode('normal', 0)).toBe(true);
-		for (let m = 5; m < 60; m += 5) expect(shouldActForMode('normal', m)).toBe(false);
+		expect(shouldActForMode('normal', 30)).toBe(true);
+		for (const m of [5, 10, 15, 20, 25, 35, 40, 45, 50, 55]) {
+			expect(shouldActForMode('normal', m)).toBe(false);
+		}
 	});
 });
 

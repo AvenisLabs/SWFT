@@ -140,8 +140,18 @@ WHERE ts > ?   // bind `bound`
 
 **Related**: never use unbounded `COUNT(*)` on large tables. Status-endpoint counts must include a `WHERE ts > ?` bound so the index is used (~390M row reads in 6 days came from unbounded COUNTs at a 30s TTL — the status cache TTL is now 300s).
 
-### NOAA data quirk
-All NOAA JSON numeric values arrive as **strings** — always parse before use.
+### NOAA data quirks
+- **Numeric values arrive as strings** — always parse before use.
+- **Timestamps are space-separated, not ISO 8601** (`'2026-04-30 23:11:27.400'`).
+  These MUST be normalised to ISO at the parser boundary
+  (`workers/cron-ingest/src/lib/noaa-client.ts` → `noaaTsToIso()`) before they
+  flow into D1 or any string comparison. The space character (ASCII 32) sorts
+  BEFORE 'T' (84), so mixing the two formats in `WHERE ts > ?` or
+  `arr.filter(x => x.ts > cutoff)` silently drops yesterday's rows. This bit us
+  twice — once in the March 15 D1 disaster, once on 2026-04-30 (solar wind +
+  alerts visibility broke until normalisation moved into the parsers).
+  Exception: `kp_forecast.forecast_time` and `issued_at` remain space-separated
+  and queries against them use `datetime()` (small table, scan cost is OK).
 
 ### File headers
 Use version comment in all files. Increment version on modification.
@@ -156,15 +166,20 @@ Use version comment in all files. Increment version on modification.
 `__BUILD_TIME__` is defined in `vite.config.ts` and used in the footer via `$lib/utils/buildInfo.ts`.
 
 ### Cron schedules
-- `*/3` — Kp index + solar wind + estimated Kp
-- `*/5` — alerts
-- `*/15` — event summaries
-- `0 12 * * 1` — weekly external link health check (Monday noon UTC)
+- `*/5 * * * *` — single high-rate schedule. The worker reads `system_state.active_mode`
+  on every fire and decides whether to do a full ingest:
+  - `normal` — full batch when `minute % 30 === 0` (every 30 min, :00 and :30)
+  - `elevated` — full batch when `minute % 15 === 0` (every 15 min)
+  - `storm` — full batch on every fire (every 5 min)
+  Mode transitions and hysteresis are pure logic in `workers/cron-ingest/src/lib/evaluate-mode.ts`.
+- `0 12 * * 1` — weekly external link health check (Monday noon UTC).
 
-The cron worker also exposes HTTP endpoints for manual triggers: `GET /health`, `GET /check-links`, `GET /ingest-kp`.
+The cron worker exposes a single read-only endpoint: `GET /health` (returns mode + expiries).
+Unauthenticated write-trigger endpoints were removed in v1.1.0 — manual ingest runs go via
+`wrangler dev` against the deployed binding.
 
 ### Kp source fallback chain (`workers/cron-ingest/src/tasks/ingest-kp-estimated.ts`)
-Each `*/3` run tries 5 sources in priority order, storing the first with fresh data:
+Each full-batch run tries 5 sources in priority order, storing the first with fresh data:
 1. **`noaa`** — NOAA Estimated Kp (primary in ingest code, global planetary index, 1-min → 15-min buckets)
 2. **`noaa_boulder`** — NOAA Boulder K-index (single-station fallback)
 3. **`gfz`** — GFZ Potsdam Hp30 (independent, 30-min resolution)
