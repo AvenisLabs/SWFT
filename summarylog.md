@@ -1,121 +1,75 @@
 # SWFT Summary Log
 
-## 2026-04-30 19:48 — Production restored: Alpha promoted, D1 quota recovery deploy
+## 2026-05-17 11:50 — Notifications subsystem (Discord webhooks + SMS) shipped
 
-Brought the site back online after the 2026-03-19 shutdown. Promoted the Alpha
-branch (Phases 1–5 of the D1 quota recovery) into production following
-`docs/DEPLOY.md`, with one extra fix discovered during pre-flight.
+Built a full subscription-notifications feature for Kp threshold events, with
+Cloudflare Access auth, per-channel rule/schedule editors, a cron-driven
+dispatcher, Discord embed builder, TextBelt SMS support, and a delivery audit
+log. Two independent agent review passes drove the design to a clean state.
 
-### Pre-flight discovery
-- `src/lib/server/solarwind.ts:29` was still using
-  `WHERE datetime(ts) > datetime('now', ? || ' hours')` — the same
-  index-killing pattern the March 15 postmortem indicted, on a hot SSR path
-  (24h of solar wind on every homepage load). Phase 2 swept `kp_estimated`
-  and `alerts_raw` but missed `solarwind_summary`. Fixed:
-  precomputed ISO bound bound as a plain string, comment rewritten to lead
-  with the constraint (index unusable when wrapped) instead of describing
-  what the wrap did. File header bumped v0.2.0 → v0.3.0.
+### What landed
+- **Migration 0008** — six tables: `notif_users`, `notif_channels`,
+  `notif_rules`, `notif_schedules`, `notif_state`, `notif_deliveries`.
+  Seeded `karathrace69@gmail.com` as the first admin.
+- **Migration 0009** — seeds `system_state.notif_last_dispatch_mode = 'normal'`
+  so the dispatcher's mode-transition CAS has a defined baseline on first run.
+- **Auth via Cloudflare Access** (Google IdP) — `hooks.server.ts` reads
+  `Cf-Access-Authenticated-User-Email`, resolves the row in `notif_users`,
+  enforces the allowlist at `/notifications/*` and `/api/v1/notifications/*`.
+  Dev override `DEV_AUTH_EMAIL` for local SvelteKit; loud `console.warn` if it
+  ever leaks into production.
+- **CF Access Group sync** — `src/lib/server/cf-access.ts` PUTs the email
+  allowlist via the CF API on every admin add/remove. Drift detection +
+  one-directional reconcile (D1 → CF) on the admin UI.
+- **`/notifications` UI** — channels list with masked target display,
+  enable/disable toggle, test-send button (60s cooldown), delete.
+  `/notifications/channels/[id]` hosts the rule editor and the schedule editor
+  (multiple windows per channel, IANA tz, optional date range).
+  `/notifications/admin/users` for admins to manage the allowlist.
+  `/notifications/log` shows last 200 dispatches with status/error.
+- **Cron dispatcher** — `workers/cron-ingest/src/tasks/dispatch-notifications.ts`
+  runs every `*/5` tick regardless of mode skip-gate. Pure decision logic in
+  `notif-decide.ts`; orchestrator handles I/O, CAS-based watermark claim,
+  per-action persistence of `last_immediate_at` / `sms_last_sent_at` only on
+  successful dispatch.
+- **TextBelt SMS** with hard 12h-per-phone cap, immediate-only delivery.
+- **Footer link** — "Notify (subscription notifications)" added to the global
+  footer, pointing to `/notifications`.
+- **pages.dev block** — `*.pages.dev/notifications/*` and `.../api/v1/notifications/*`
+  return 410 Gone with a redirect hint, preventing CF Access bypass via the
+  always-on Cloudflare-assigned URL.
 
-### Pre-flight verification
-- `npm run check` → 0/0
-- `npm run test` → 94/94
-- `npm run build` → clean
-- `cd workers/cron-ingest && npx tsc --noEmit` → clean
+### Code review
+Two independent agent review rounds across 5 sub-passes found 13 issues; all
+medium+ severity fixed before deploy. Notable catches:
+- **Events between cadence ticks were silently dropped** from summaries —
+  redesigned `decide()` to buffer all qualifying events and drain on summary
+  fire, fixing the silent data loss.
+- **Race condition on concurrent dispatcher ticks** — added CAS-based watermark
+  claim (`tryClaim`) so identical-tick races can't double-fire.
+- **`datetime('now')` → `new Date()` footgun** (same class as the NOAA timestamp
+  bug in CLAUDE.md) — fixed by binding explicit ISO 8601 on every
+  `notif_deliveries` insert.
+- **Mode-transition CAS** on `system_state.notif_last_dispatch_mode` so two
+  ticks observing the same transition can't both emit `storm_end`.
+- **Storm-end gated on `inSchedule`** to avoid 3am pings for off-schedule users.
 
-### Deploy sequence executed
-1. **D1 migration 0007** applied to remote — created `kp_events`,
-   `system_state`, seeded 4 rows, dropped `kp_obs`. Verified via
-   `sqlite_master` (only `kp_events` + `system_state` returned, no `kp_obs`)
-   and `system_state` keys (`active_mode=normal`, both `*_until_iso`
-   empty, `last_kp_events_ts_seen` empty).
-2. **Cron worker deployed** as `swft-cron-ingest` v1.1.0. Triggers live:
-   `*/5 * * * *` and `0 12 * * 1`. Worker URL is on
-   `avenislabs.workers.dev` (the `CRON_WORKER_URL` env var in
-   `wrangler.toml` points to a stale `maine-sky-pixels` subdomain — but
-   `CRON_WORKER_URL` is unreferenced anywhere in the source, so the
-   mismatch is harmless).
-3. **Pages app deployed** with `--branch master --commit-dirty=true`
-   (master is the production branch for this project). Deploy ID
-   `a937c810`. Custom domain (`swft.skypixels.org`) picked up the new
-   code immediately.
+Final state: **144/144 tests pass**, `npm run check` 0 errors/0 warnings,
+`tsc --noEmit` clean on the cron worker.
 
-### Smoke checks (custom domain)
-- `/api/v1/status` → `mode=normal`, `kp_events_row_count=0`,
-  expiries null ✓
-- `/api/v1/events/kp?limit=5` → `count=0`, `ok=true` ✓
-- `/` → `HTTP/1.1 200 OK` ✓
-- `/api/v1/kp/summary` → `current_kp=1.78`, `status=quiet` ✓ (real data
-  flowing from `kp_estimated`)
-- Worker `/health` → `{status:ok, mode:normal, storm_until:null,
-  elevated_until:null}` ✓
+### Provisioning done
+- CF Access Application protecting `swft.skypixels.org/notifications*` set up
+  via Zero Trust → Access controls (new menu structure post-2025 rebrand).
+- API token, account ID, Access Group ID uploaded as Pages secrets.
+- `.dev.vars` populated locally with `DEV_AUTH_EMAIL` + the three CF secrets;
+  `.dev.vars` added to `.gitignore`.
+- D1 migrations 0008 + 0009 applied to local AND remote.
+- `notif_users` table synced with CF Access Group (1 admin + 3 users).
 
-### Outstanding items (not in this session)
-- **First-60-min watch and 48h watch** per DEPLOY.md §4–§5 — D1 reads
-  budget 100k–300k/day in normal mode, red flag at 1M/day; worker
-  invocations should hit ~288/day; full batches now ~48/day in normal
-  (after the 30-min cadence change, see below).
+### Deferred / known limitations
+- Residual race window for `on_resume` digest when two concurrent ticks have
+  identical inputs — would need a tick-id column to fully close. Worst case is
+  one duplicate Discord message; documented in `dispatch-notifications.ts`.
+- `off_hours_digest_time` is UTC-only (matches schema; UI labels it
+  explicitly). Could later interpret in the schedule's timezone if asked.
 
-## 2026-04-30 20:09 — Post-deploy bug sweep + normal-mode cadence change
-
-### 1. Wiped 43-day-old ingest tables (3,190 rows)
-Migration 0007 only dropped `kp_obs`. The other ingest tables
-(`kp_estimated`, `solarwind_summary`, `alerts_raw`, `alerts_classified`,
-`kp_forecast`, `events`) still held data from immediately before the
-2026-03-19 shutdown — bad optics on a "back online" dashboard.
-DELETE'd those 6 tables (FK order: classified before raw). Preserved
-`cron_state` (task watermarks) and content tables (`content_articles`,
-`site_news_items`, `site_links`, `link_check_*`).
-
-### 2. Changed `normal` mode cadence from hourly to every 30 min
-Per user request — `:00` and `:30` instead of just `:00`.
-- `workers/cron-ingest/src/lib/evaluate-mode.ts` v0.1.0 → v0.2.0:
-  `shouldActForMode` returns `minuteOfHour % 30 === 0` for normal.
-- `tests/evaluate-mode.test.ts`: updated the "normal acts only at the
-  top of the hour" test to assert `:00` and `:30` are true, all other
-  5-min marks are false. 94/94 pass.
-- `workers/cron-ingest/src/index.ts` v1.1.0 → v1.2.0: comment updated.
-- `CLAUDE.md` "Cron schedules" section rewritten to describe the
-  single `*/5` schedule + skip-gate (the previous text still showed
-  the obsolete `*/3 + */5 + */15` triad).
-- `docs/DEPLOY.md` §5 budget: `~24` full batches/day → `~48`.
-
-### 3. Critical pre-existing bug — NOAA timestamp format mismatch
-The 00:00 UTC ingest succeeded for Kp + alerts but produced 0 solar
-wind rows. Investigation found NOAA serves timestamps in space-separated
-format (`'2026-05-01 00:01:00.000'`) but downstream code does ISO 8601
-string comparisons (`'2026-04-30T00:00:00Z'`). ASCII space (32) sorts
-BEFORE 'T' (84), so the cutoff filter
-`recentPlasma = plasma.filter(p => p.ts > cutoff)` discards rows with
-yesterday's date. Same root-cause family as the 2026-03-15 D1 disaster
-(timestamp format mismatch in string comparisons), just on the in-memory
-filter side instead of the SQL side.
-
-The same bug also affected the mode evaluator's
-`WHERE r.issue_time > ?` query in `index.ts:78` — meaning even
-actively-firing G-alerts would be invisible to the upgrade path.
-
-**Fix:** added `noaaTsToIso()` helper in `noaa-client.ts` v0.6.0 → v0.7.0
-that normalises NOAA's space-separated timestamps to ISO at the parser
-boundary. Applied to `fetchPlasma`, `fetchMag`, `fetchAlerts`. Left
-`fetchKpForecast` alone (CLAUDE.md exception — small table, queries
-already use `datetime()`). `fetchKpIndex` was already dead code (kp_obs
-dropped).
-
-**Backfill:** ran `UPDATE alerts_raw SET issue_time = REPLACE(issue_time, ' ', 'T') || 'Z' WHERE issue_time NOT LIKE '%T%'`
-to convert the 137 alerts ingested under the buggy code path to ISO.
-`solarwind_summary` was empty so no backfill needed.
-
-**CLAUDE.md** "NOAA data quirk" section expanded to call out the
-timestamp format and reference the helper, so a future contributor
-doesn't reintroduce the same bug a third time.
-
-### 4. Deploys
-- Worker v1.1.0 → v1.2.0 (cadence change) → v0.7.0 NOAA-client (parser fix).
-  Two deploys, two version IDs (`b97b716e`, `7e98e4f0`).
-- Pages app NOT redeployed — no client-side changes.
-
-### Verification window
-Next full-batch fire at `00:30 UTC` (currently 00:08 UTC). After that
-fire, expect `solarwind_summary` to populate (~288 rows = 24h ÷ 5 min)
-and the mode evaluator to see the alert backfill. No banner change
-expected — current Kp is quiet (1.78), no G-alerts active.

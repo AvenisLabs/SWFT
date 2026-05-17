@@ -1,4 +1,4 @@
-// index.ts v1.2.0 — SWFT cron worker entry with dynamic skip-gate.
+// index.ts v1.3.0 — SWFT cron worker entry with dynamic skip-gate + notification dispatch.
 //
 // Cron configuration: ONE schedule declared (`*/5 * * * *`, the fastest rate
 // we ever need) plus the weekly link check. Every `*/5` fire reads monitoring
@@ -19,6 +19,7 @@ import { ingestSolarWind } from './tasks/ingest-solarwind';
 import { ingestAlerts } from './tasks/ingest-alerts';
 import { generateSummaries } from './tasks/generate-summaries';
 import { checkExternalLinks } from './tasks/check-links';
+import { dispatchNotifications } from './tasks/dispatch-notifications';
 import {
 	computeEffectiveMode,
 	evaluateMode,
@@ -34,6 +35,7 @@ interface Env {
 	SITE_URL: string;
 	DISCORD_WEBHOOK_URL?: string;
 	BOM_API_KEY?: string;
+	TEXTBELT_API_KEY?: string;
 }
 
 const WEEKLY_CRON = '0 12 * * 1';
@@ -144,12 +146,28 @@ export default {
 			const current = await readModeState(env.DB);
 			const effectiveMode = computeEffectiveMode(current, scheduledAt);
 
-			if (!shouldActForMode(effectiveMode, minute)) {
-				// Cheap skip path — one D1 read, no NOAA fetches, no D1 writes.
-				return;
+			if (shouldActForMode(effectiveMode, minute)) {
+				await runFullBatch(env, scheduledAt);
 			}
 
-			await runFullBatch(env, scheduledAt);
+			// Notification dispatch runs on EVERY */5 tick regardless of the
+			// ingest skip-gate. Most ticks are no-ops (no new kp_events since
+			// the watermark), but per-tick precision lets us fire schedule-time
+			// digests (e.g. daily 07:00 off-hours digest) without depending on
+			// the ingest cadence. Failures are logged but never block other tasks.
+			try {
+				const ds = await dispatchNotifications(
+					{ DB: env.DB, TEXTBELT_API_KEY: env.TEXTBELT_API_KEY },
+					scheduledAt
+				);
+				if (ds.channels_checked > 0 || ds.actions_dispatched > 0) {
+					console.log(
+						`[cron:notif] channels=${ds.channels_checked} actions=${ds.actions_dispatched} failures=${ds.failures}`
+					);
+				}
+			} catch (err) {
+				console.error('[cron:notif] dispatch failed:', err);
+			}
 		})());
 	},
 

@@ -1,6 +1,7 @@
-// generate-summaries.ts v0.5.0 — Derived summaries + retention cleanup.
-// Storm detection now reads from kp_estimated (the 15-min live buffer, 24h retention)
-// since kp_obs was dropped in migration 0007. Retention list updated accordingly.
+// generate-summaries.ts v0.6.0 — Derived summaries + retention cleanup.
+// Storm detection reads from kp_estimated (15-min live buffer, 24h retention).
+// Retention list includes the notif_deliveries audit log (90d) so it doesn't
+// grow unbounded — same lesson learned from the March 15 D1 disaster.
 
 import { updateCronState } from '../lib/db';
 
@@ -8,6 +9,7 @@ const RETENTION = {
 	solarwind_summary_days: 7,
 	alerts_days: 90,
 	events_days: 90,
+	notif_deliveries_days: 90,
 } as const;
 
 function isoDaysAgo(days: number): string {
@@ -105,11 +107,13 @@ export async function generateSummaries(db: D1Database): Promise<{ events_create
 		const alertCutoff = isoDaysAgo(RETENTION.alerts_days);
 		const eventCutoff = isoDaysAgo(RETENTION.events_days);
 
+		const notifCutoff = isoDaysAgo(RETENTION.notif_deliveries_days);
 		const pruneResults = await db.batch([
 			db.prepare('DELETE FROM solarwind_summary WHERE ts < ?').bind(swCutoff),
 			db.prepare('DELETE FROM alerts_classified WHERE raw_alert_id IN (SELECT id FROM alerts_raw WHERE issue_time < ?)').bind(alertCutoff),
 			db.prepare('DELETE FROM alerts_raw WHERE issue_time < ?').bind(alertCutoff),
 			db.prepare('DELETE FROM events WHERE begins < ?').bind(eventCutoff),
+			db.prepare('DELETE FROM notif_deliveries WHERE sent_at < ?').bind(notifCutoff),
 		]);
 		const rowsPruned = pruneResults.reduce((sum, r) => sum + (r.meta?.changes ?? 0), 0);
 

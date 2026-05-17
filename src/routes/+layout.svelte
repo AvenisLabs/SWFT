@@ -233,7 +233,11 @@
 	<footer class="app-footer">
 		<p class="footer-mode"><MonitoringMode state={modeState} /></p>
 		<p>&copy; 2026 SWFT SkyPixels &mdash; Last updated: {buildTime}</p>
-		<p class="footer-links"><a href="/gnss-reliability">GNSS Reliability Guide</a></p>
+		<p class="footer-links">
+			<a href="/gnss-reliability">GNSS Reliability Guide</a>
+			<span class="footer-sep">&middot;</span>
+			<a href="/notifications">Notify <span class="footer-sublabel">(subscription notifications)</span></a>
+		</p>
 		<p class="attribution">Data sourced from <ExtLink href="https://www.swpc.noaa.gov">NOAA Space Weather Prediction Center</ExtLink> &middot; v0.2.0</p>
 	</footer>
 </div>
@@ -593,6 +597,16 @@
 
 	.footer-links a {
 		color: var(--text-secondary);
+	}
+
+	.footer-sep {
+		color: var(--text-muted);
+		margin: 0 var(--space-xs);
+	}
+
+	.footer-sublabel {
+		color: var(--text-muted);
+		font-size: 0.7rem;
 	}
 
 	.attribution {
