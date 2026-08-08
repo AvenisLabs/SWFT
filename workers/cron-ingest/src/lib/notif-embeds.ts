@@ -1,4 +1,4 @@
-// notif-embeds.ts v0.1.0 — Discord embed builders for notification dispatch.
+// notif-embeds.ts v0.3.0 — Discord embed builders for notification dispatch.
 //
 // Embed types:
 //   immediate         — single high-severity event (Kp >= immediate_threshold_kp)
@@ -9,6 +9,7 @@
 // Colors map to NOAA G-scale tiers, matching the dashboard's storm banner palette.
 
 import type { KpEvent, BufferedEvent } from './notif-types';
+import { describeTimeZone, formatUserTime } from '../../../../src/lib/utils/timeFormat';
 
 export interface DiscordEmbed {
 	title?: string;
@@ -74,11 +75,20 @@ function defaultAllowedMentions(mention: string | null): DiscordPayload['allowed
 	return { parse: mention ? ['roles', 'users'] : [] };
 }
 
+/** Kp >= 6 required to tag; between 5 and 6 the event still posts, silently. */
+const TAG_KP_THRESHOLD = 6;
+
+/** Only tag when Kp has reached the tag threshold; otherwise post untagged. */
+function mentionForKp(mention: string | null, kp: number): string | null {
+	return mention !== null && kp >= TAG_KP_THRESHOLD ? mention : null;
+}
+
 /** Immediate alert for one high-severity event. */
 export function buildImmediateEmbed(
 	channelName: string,
 	mention: string | null,
-	event: KpEvent
+	event: KpEvent,
+	timeZone: string | null = null
 ): DiscordPayload {
 	const embed: DiscordEmbed = {
 		title: `🌩️ Kp ${event.kp_value.toFixed(2)} — ${event.storm_class}`,
@@ -90,8 +100,9 @@ export function buildImmediateEmbed(
 			{ name: 'Kp', value: event.kp_value.toFixed(2), inline: true },
 			{ name: 'Storm class', value: event.storm_class, inline: true },
 			{ name: 'Source', value: event.source, inline: true },
+			{ name: 'Time', value: formatUserTime(event.ts, timeZone), inline: false },
 		],
-		footer: { text: 'SWFT Notifications' },
+		footer: { text: `SWFT Notifications · times: ${describeTimeZone(timeZone, event.ts)}` },
 	};
 	if (event.bz_nt !== null) {
 		embed.fields!.push({ name: 'Bz (nT)', value: event.bz_nt.toFixed(1), inline: true });
@@ -99,11 +110,12 @@ export function buildImmediateEmbed(
 	if (event.speed_kms !== null) {
 		embed.fields!.push({ name: 'Wind speed (km/s)', value: event.speed_kms.toFixed(0), inline: true });
 	}
+	const effectiveMention = mentionForKp(mention, event.kp_value);
 	return {
 		username: 'SWFT Notifications',
-		content: mention ? mentionPrefix(mention).trim() : undefined,
+		content: effectiveMention ? mentionPrefix(effectiveMention).trim() : undefined,
 		embeds: [embed],
-		allowed_mentions: defaultAllowedMentions(mention),
+		allowed_mentions: defaultAllowedMentions(effectiveMention),
 	};
 }
 
@@ -112,14 +124,15 @@ export function buildSummaryEmbed(
 	channelName: string,
 	mention: string | null,
 	events: KpEvent[],
-	windowMinutes: number
+	windowMinutes: number,
+	timeZone: string | null = null
 ): DiscordPayload {
 	const peak = peakOf(events);
 	const lines = events
 		.slice(-12) // cap visible rows to fit comfortably in one embed
 		.map(
 			e =>
-				`• \`${e.ts.replace('T', ' ').slice(0, 16)}\`  Kp **${e.kp_value.toFixed(2)}**  ${e.storm_class}`
+				`• \`${formatUserTime(e.ts, timeZone)}\`  Kp **${e.kp_value.toFixed(2)}**  ${e.storm_class}`
 		);
 	const more = events.length > 12 ? `\n…and ${events.length - 12} earlier event(s).` : '';
 
@@ -133,29 +146,32 @@ export function buildSummaryEmbed(
 			{ name: 'Peak Kp', value: peak.kp.toFixed(2), inline: true },
 			{ name: 'Peak class', value: peak.storm_class, inline: true },
 		],
-		footer: { text: `SWFT Notifications · channel ${channelName}` },
+		footer: { text: `SWFT Notifications · channel ${channelName} · times: ${describeTimeZone(timeZone)}` },
 	};
 
+	const effectiveMention = mentionForKp(mention, peak.kp);
 	return {
 		username: 'SWFT Notifications',
-		content: mention ? mentionPrefix(mention).trim() : undefined,
+		content: effectiveMention ? mentionPrefix(effectiveMention).trim() : undefined,
 		embeds: [embed],
-		allowed_mentions: defaultAllowedMentions(mention),
+		allowed_mentions: defaultAllowedMentions(effectiveMention),
 	};
 }
 
-/** Buffered off-hours events flushed as a single digest. */
+/** Buffered off-hours events flushed as a single digest. Never tags — this is
+ *  a daily-style digest, not a time-sensitive alert. */
 export function buildOffHoursDigestEmbed(
 	channelName: string,
-	mention: string | null,
-	buffered: BufferedEvent[]
+	_mention: string | null,
+	buffered: BufferedEvent[],
+	timeZone: string | null = null
 ): DiscordPayload {
 	const peak = peakOf(buffered);
 	const lines = buffered
 		.slice(-15)
 		.map(
 			e =>
-				`• \`${e.ts.replace('T', ' ').slice(0, 16)}\`  Kp **${e.kp_value.toFixed(2)}**  ${e.storm_class}`
+				`• \`${formatUserTime(e.ts, timeZone)}\`  Kp **${e.kp_value.toFixed(2)}**  ${e.storm_class}`
 		);
 	const more = buffered.length > 15 ? `\n…and ${buffered.length - 15} earlier event(s).` : '';
 
@@ -169,14 +185,14 @@ export function buildOffHoursDigestEmbed(
 			{ name: 'Peak Kp', value: peak.kp.toFixed(2), inline: true },
 			{ name: 'Peak class', value: peak.storm_class, inline: true },
 		],
-		footer: { text: `SWFT Notifications · channel ${channelName}` },
+		footer: { text: `SWFT Notifications · channel ${channelName} · times: ${describeTimeZone(timeZone)}` },
 	};
 
 	return {
 		username: 'SWFT Notifications',
-		content: mention ? mentionPrefix(mention).trim() : undefined,
+		content: undefined,
 		embeds: [embed],
-		allowed_mentions: defaultAllowedMentions(mention),
+		allowed_mentions: defaultAllowedMentions(null),
 	};
 }
 
@@ -186,16 +202,18 @@ export function buildStormEndEmbed(
 	mention: string | null,
 	peakKp: number | null,
 	peakClass: string | null,
-	durationHours: number | null
+	durationHours: number | null,
+	timeZone: string | null = null
 ): DiscordPayload {
+	const nowIso = new Date().toISOString();
 	const embed: DiscordEmbed = {
 		title: '✅ Storm ended — back to normal monitoring',
 		description: `SWFT has returned its monitoring mode to **normal**.`,
 		url: SITE_URL,
 		color: 0x2ecc71,
-		timestamp: new Date().toISOString(),
-		fields: [],
-		footer: { text: `SWFT Notifications · channel ${channelName}` },
+		timestamp: nowIso,
+		fields: [{ name: 'Time', value: formatUserTime(nowIso, timeZone), inline: false }],
+		footer: { text: `SWFT Notifications · channel ${channelName} · times: ${describeTimeZone(timeZone)}` },
 	};
 	if (peakKp !== null) {
 		embed.fields!.push({ name: 'Peak Kp', value: peakKp.toFixed(2), inline: true });

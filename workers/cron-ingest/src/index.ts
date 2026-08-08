@@ -1,4 +1,4 @@
-// index.ts v1.3.0 — SWFT cron worker entry with dynamic skip-gate + notification dispatch.
+// index.ts v1.4.0 — SWFT cron worker entry with dynamic skip-gate + notification dispatch.
 //
 // Cron configuration: ONE schedule declared (`*/5 * * * *`, the fastest rate
 // we ever need) plus the weekly link check. Every `*/5` fire reads monitoring
@@ -19,6 +19,7 @@ import { ingestSolarWind } from './tasks/ingest-solarwind';
 import { ingestAlerts } from './tasks/ingest-alerts';
 import { generateSummaries } from './tasks/generate-summaries';
 import { checkExternalLinks } from './tasks/check-links';
+import { dispatchKIndexPushes } from './tasks/dispatch-kindex-pushes';
 import { dispatchNotifications } from './tasks/dispatch-notifications';
 import {
 	computeEffectiveMode,
@@ -167,6 +168,17 @@ export default {
 				}
 			} catch (err) {
 				console.error('[cron:notif] dispatch failed:', err);
+			}
+
+			try {
+				const ks = await dispatchKIndexPushes({ DB: env.DB }, scheduledAt);
+				if (ks.schedules_checked > 0 || ks.pushes_dispatched > 0) {
+					console.log(
+						`[cron:kindex] schedules=${ks.schedules_checked} pushes=${ks.pushes_dispatched} failures=${ks.failures}`
+					);
+				}
+			} catch (err) {
+				console.error('[cron:kindex] dispatch failed:', err);
 			}
 		})());
 	},

@@ -1,9 +1,9 @@
-// notif-channels.ts v0.1.0 — Server-side library for channel CRUD.
+// notif-channels.ts v0.3.0 — Server-side library for channel CRUD.
 //
 // A channel is one destination (Discord webhook URL or SMS phone). Each
 // channel owns exactly one rule row and zero-or-more schedule rows. Creating
-// a channel auto-creates the rule row with defaults and an empty state row,
-// so callers never have to remember the secondary inserts.
+// a channel auto-creates the rule row with defaults and a state row seeded to
+// the current event watermark, so new channels do not replay old Kp history.
 
 import type { D1Database } from '@cloudflare/workers-types';
 import { queryAll, queryFirst, execute } from './db';
@@ -72,6 +72,14 @@ export function normalizeTarget(kind: ChannelKind, target: string): string {
 	return target.trim();
 }
 
+async function getCurrentKpEventWatermark(db: D1Database): Promise<number> {
+	const row = await queryFirst<{ max_id: number | null }>(
+		db,
+		'SELECT COALESCE(MAX(id), 0) AS max_id FROM kp_events'
+	);
+	return row?.max_id ?? 0;
+}
+
 /** List channels owned by `email`, oldest first. */
 export async function listChannels(db: D1Database, email: string): Promise<NotifChannel[]> {
 	return queryAll<NotifChannel>(
@@ -107,21 +115,26 @@ export async function createChannel(
 		mention: string | null;
 	}
 ): Promise<NotifChannel> {
+	const createdAt = new Date().toISOString();
 	const insertChannel = await db
 		.prepare(
-			`INSERT INTO notif_channels (owner_email, name, kind, target, mention, enabled)
-			 VALUES (?, ?, ?, ?, ?, 1)`
+			`INSERT INTO notif_channels (owner_email, name, kind, target, mention, enabled, created_at)
+			 VALUES (?, ?, ?, ?, ?, 1, ?)`
 		)
-		.bind(input.owner_email, input.name, input.kind, input.target, input.mention)
+		.bind(input.owner_email, input.name, input.kind, input.target, input.mention, createdAt)
 		.run();
 
 	const id = Number(insertChannel.meta?.last_row_id);
 	if (!id) throw new Error('Failed to retrieve new channel id.');
 
+	const currentEventWatermark = await getCurrentKpEventWatermark(db);
+
 	// Seed rule + state in one batch (D1 batch limit is 50; we're at 2).
 	await db.batch([
 		db.prepare('INSERT INTO notif_rules (channel_id) VALUES (?)').bind(id),
-		db.prepare('INSERT INTO notif_state (channel_id) VALUES (?)').bind(id),
+		db
+			.prepare('INSERT INTO notif_state (channel_id, last_event_id_sent) VALUES (?, ?)')
+			.bind(id, currentEventWatermark),
 	]);
 
 	const row = await queryFirst<NotifChannel>(
@@ -196,7 +209,7 @@ export async function recordDelivery(
 	row: {
 		channel_id: number;
 		channel_name: string;
-		kind: 'immediate' | 'summary' | 'off_hours_digest' | 'storm_end' | 'test';
+		kind: 'immediate' | 'summary' | 'off_hours_digest' | 'storm_end' | 'test' | 'kindex_push';
 		payload_summary: string;
 		ok: boolean;
 		http_status: number | null;

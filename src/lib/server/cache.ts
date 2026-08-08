@@ -1,4 +1,10 @@
-// cache.ts v0.3.0 — Cloudflare Cache API wrapper for API responses
+// cache.ts v0.4.0 — Cloudflare Cache API wrapper for API responses.
+//
+// IMPORTANT: cache.put() MUST be awaited (or passed to ctx.waitUntil()).
+// A bare fire-and-forget Promise gets cancelled when the response is sent,
+// so the put silently never completes and every request misses the cache.
+// We discovered this on 2026-05-17 when API latency hit 5–11s per request:
+// the cache was effectively disabled and every hit was going to D1 cold.
 
 /** Cache key prefix to namespace our entries */
 const CACHE_PREFIX = 'https://swft-web.internal/cache/';
@@ -47,10 +53,14 @@ export async function withCache(
 		cachedResponse.headers.set('Cache-Control', `public, max-age=${ttlSeconds}`);
 		cachedResponse.headers.set('X-Cache', 'MISS');
 
-		// Store in cache (non-blocking)
-		cache.put(cacheRequest, cachedResponse).catch(() => {
-			// Silently ignore cache write failures
-		});
+		// Must be awaited — bare promises get cancelled when the response is
+		// sent in Workers. Adds ~5–10ms to the miss path, but turns the cache
+		// from "never works" into "absorbs 99% of traffic."
+		try {
+			await cache.put(cacheRequest, cachedResponse);
+		} catch (err) {
+			console.warn('[cache] put failed for', cacheKey, err);
+		}
 	}
 
 	fresh.headers.set('X-Cache', 'MISS');

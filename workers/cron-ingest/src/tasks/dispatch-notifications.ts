@@ -1,10 +1,9 @@
-// dispatch-notifications.ts v0.1.0 — Cron-driven notification dispatcher.
+// dispatch-notifications.ts v0.2.0 — Cron-driven notification dispatcher.
 //
 // Runs every */5 minutes (orchestrated from src/index.ts). For each enabled
 // notif_channels row, it:
 //   1. Loads channel + rule + schedules + state from D1.
-//   2. Loads new kp_events rows with id > state.last_event_id_sent AND
-//      kp_value >= rule.threshold_kp.
+//   2. Loads new kp_events rows with id > state.last_event_id_sent.
 //   3. Calls the pure `decide()` to produce a list of actions + next state.
 //   4. Performs the side effects (Discord/SMS POSTs, audit log inserts).
 //   5. Persists the new state row.
@@ -50,11 +49,91 @@ interface StormEndInfo {
 	durationHours: number | null;
 }
 
+type DispatchRow = NotifChannel & NotifRule & NotifState;
+
 function chunk<T>(arr: T[], size: number): T[][] {
 	if (size <= 0) return [arr];
 	const out: T[][] = [];
 	for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
 	return out;
+}
+
+function preferredNotificationTimeZone(schedules: NotifSchedule[]): string | null {
+	return schedules.find(s => s.timezone)?.timezone ?? null;
+}
+
+function parseDbTimestamp(value: string | null): number | null {
+	if (!value) return null;
+	const normalized = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(value)
+		? `${value.replace(' ', 'T')}Z`
+		: value;
+	const ms = Date.parse(normalized);
+	return Number.isFinite(ms) ? ms : null;
+}
+
+export function shouldBootstrapZeroWatermark(
+	channelCreatedAt: string,
+	maxEventCreatedAt: string | null
+): boolean {
+	const channelCreatedMs = parseDbTimestamp(channelCreatedAt);
+	const maxEventCreatedMs = parseDbTimestamp(maxEventCreatedAt);
+	return channelCreatedMs !== null && maxEventCreatedMs !== null && channelCreatedMs > maxEventCreatedMs;
+}
+
+export function didClaimWatermark(
+	previousWatermark: number,
+	newWatermark: number,
+	changes: number,
+	currentWatermark: number | null
+): boolean {
+	if (changes > 0) return true;
+	if (previousWatermark !== newWatermark) return false;
+	return currentWatermark === newWatermark;
+}
+
+export function maxSeenEventId(currentWatermark: number, events: Array<Pick<KpEvent, 'id'>>): number {
+	return events.reduce((m, e) => Math.max(m, e.id), currentWatermark);
+}
+
+async function bootstrapZeroWatermarksPastBacklog(
+	db: D1Database,
+	rows: DispatchRow[],
+	maxEventId: number,
+	maxEventCreatedAt: string | null
+): Promise<void> {
+	if (maxEventId <= 0) return;
+
+	const rowsToBootstrap = rows.filter(
+		r => r.last_event_id_sent === 0 && shouldBootstrapZeroWatermark(r.created_at, maxEventCreatedAt)
+	);
+	if (rowsToBootstrap.length === 0) return;
+
+	let bootstrapped = 0;
+	for (const batchRows of chunk(rowsToBootstrap, 50)) {
+		const results = await db.batch(
+			batchRows.map(row =>
+				db
+					.prepare(
+						`UPDATE notif_state
+						 SET last_event_id_sent = ?, off_hours_buffer = ?
+						 WHERE channel_id = ? AND last_event_id_sent = 0`
+					)
+					.bind(maxEventId, '[]', row.id)
+			)
+		);
+
+		results.forEach((result, i) => {
+			if ((result.meta?.changes ?? 0) > 0) {
+				batchRows[i].last_event_id_sent = maxEventId;
+				batchRows[i].off_hours_buffer = '[]';
+				bootstrapped++;
+			}
+		});
+	}
+
+	if (bootstrapped > 0) {
+		console.log(`[notif] bootstrapped ${bootstrapped} zero-watermark channel(s) to event id ${maxEventId}`);
+	}
 }
 
 /** When the system just transitioned to 'normal' from elevated/storm, find
@@ -158,7 +237,7 @@ export async function dispatchNotifications(env: DispatchEnv, now: Date): Promis
 		 JOIN notif_rules r ON r.channel_id = c.id
 		 JOIN notif_state s ON s.channel_id = c.id
 		 WHERE c.enabled = 1`
-	).all<NotifChannel & NotifRule & NotifState>();
+	).all<DispatchRow>();
 
 	const rows = channelsResult.results ?? [];
 	if (rows.length === 0) {
@@ -166,17 +245,24 @@ export async function dispatchNotifications(env: DispatchEnv, now: Date): Promis
 		return summary;
 	}
 
-	// Cheap fast-bail: ask only for MAX(id) first. If no channel has an
-	// older watermark, skip the event fetch entirely. The vast majority of
-	// `*/5` ticks fall through here — kp_events appends are rare in normal mode.
+	const maxRow = await env.DB.prepare(
+		'SELECT MAX(id) AS max_id, MAX(created_at) AS max_created_at FROM kp_events'
+	).first<{ max_id: number | null; max_created_at: string | null }>();
+	const maxEventId = maxRow?.max_id ?? 0;
+	const maxEventCreatedAt = maxRow?.max_created_at ?? null;
+
+	// Channels created after the latest stored event should start at the live
+	// high-water mark. This also repairs legacy rows that still have the old
+	// DEFAULT 0 state and would otherwise replay historical Kp events.
+	await bootstrapZeroWatermarksPastBacklog(env.DB, rows, maxEventId, maxEventCreatedAt);
+
+	// Cheap fast-bail: if no channel has an older watermark, skip the event
+	// fetch entirely. The vast majority of `*/5` ticks fall through here —
+	// kp_events appends are rare in normal mode.
 	const minWatermark = rows.reduce(
 		(m, r) => Math.min(m, r.last_event_id_sent),
 		Number.MAX_SAFE_INTEGER
 	);
-	const maxRow = await env.DB.prepare(
-		'SELECT MAX(id) AS max_id FROM kp_events'
-	).first<{ max_id: number | null }>();
-	const maxEventId = maxRow?.max_id ?? 0;
 
 	// We fetch the union of all events newer than the lowest watermark.
 	// LIMIT_PER_TICK caps the fetch — channels deep behind will catch up
@@ -265,12 +351,17 @@ export async function dispatchNotifications(env: DispatchEnv, now: Date): Promis
 			off_hours_buffer: row.off_hours_buffer,
 		};
 
-		// Per-channel event filter.
-		const newEvents = newEventsAll.filter(
+		// Per-channel event filters. All unseen kp_events advance the channel
+		// watermark, but only threshold-qualified events generate sends or
+		// summaries. This prevents old below-threshold events from replaying if
+		// a user lowers the threshold later.
+		const unseenEvents = newEventsAll.filter(e => e.id > state.last_event_id_sent);
+		const newEvents = unseenEvents.filter(
 			e => e.id > state.last_event_id_sent && e.kp_value >= rule.threshold_kp
 		);
 
 		const schedules = schedulesByChannel.get(row.id) ?? [];
+		const notificationTimeZone = preferredNotificationTimeZone(schedules);
 		const inSchedNow = isInSchedule(schedules, now);
 
 		const decision = decide({
@@ -283,6 +374,10 @@ export async function dispatchNotifications(env: DispatchEnv, now: Date): Promis
 			previousMode: previousTyped,
 			currentMode: currentTyped,
 		});
+		const seenWatermark = maxSeenEventId(state.last_event_id_sent, unseenEvents);
+		if (seenWatermark > decision.nextState.last_event_id_sent) {
+			decision.nextState.last_event_id_sent = seenWatermark;
+		}
 
 		// Fast-skip when there is literally nothing to do for this channel.
 		// Without this, every no-op tick would still run a CAS UPDATE + a
@@ -344,7 +439,7 @@ export async function dispatchNotifications(env: DispatchEnv, now: Date): Promis
 							durationHours: stormEndInfo.durationHours,
 						}
 					: rawAction;
-			const result = await performAction(env, channel, rule, decision.nextState, action, now);
+			const result = await performAction(env, channel, rule, decision.nextState, action, now, notificationTimeZone);
 			if (result.dispatched) summary.actions_dispatched++;
 			if (!result.ok) summary.failures++;
 			// Orchestrator owns the state-bumps that depend on whether dispatch
@@ -387,7 +482,8 @@ async function performAction(
 	rule: NotifRule,
 	state: NotifState,
 	action: DispatchAction,
-	now: Date
+	now: Date,
+	timeZone: string | null
 ): Promise<PerformResult> {
 	// SMS only supports immediate alerts at most once per 12h.
 	if (channel.kind === 'sms') {
@@ -412,15 +508,15 @@ async function performAction(
 	let kind: 'immediate' | 'summary' | 'off_hours_digest' | 'storm_end';
 	switch (action.type) {
 		case 'immediate':
-			payload = buildImmediateEmbed(channel.name, channel.mention, action.event);
+			payload = buildImmediateEmbed(channel.name, channel.mention, action.event, timeZone);
 			kind = 'immediate';
 			break;
 		case 'summary':
-			payload = buildSummaryEmbed(channel.name, channel.mention, action.events, action.windowMinutes);
+			payload = buildSummaryEmbed(channel.name, channel.mention, action.events, action.windowMinutes, timeZone);
 			kind = 'summary';
 			break;
 		case 'off_hours_digest':
-			payload = buildOffHoursDigestEmbed(channel.name, channel.mention, action.buffered);
+			payload = buildOffHoursDigestEmbed(channel.name, channel.mention, action.buffered, timeZone);
 			kind = 'off_hours_digest';
 			break;
 		case 'storm_end':
@@ -429,7 +525,8 @@ async function performAction(
 				channel.mention,
 				action.peakKp,
 				action.peakClass,
-				action.durationHours
+				action.durationHours,
+				timeZone
 			);
 			kind = 'storm_end';
 			break;
@@ -471,15 +568,17 @@ async function tryClaim(
 		)
 		.bind(newWatermark, channelId, previousWatermark)
 		.run();
-	// changes() == 0 means either CAS failed OR newWatermark equals stored
-	// value (D1 considers no-op updates as 0 changes). Distinguish by reading.
-	if ((res.meta?.changes ?? 0) > 0) return true;
-	// No-op update OR lost race — disambiguate with one extra read.
+
+	const changes = res.meta?.changes ?? 0;
+	if (didClaimWatermark(previousWatermark, newWatermark, changes, null)) return true;
+	// Only no-op updates need a disambiguation read. If another tick moved
+	// from previousWatermark to newWatermark first, this tick lost the claim.
+	if (previousWatermark !== newWatermark) return false;
 	const cur = await db
 		.prepare('SELECT last_event_id_sent AS w FROM notif_state WHERE channel_id = ?')
 		.bind(channelId)
 		.first<{ w: number }>();
-	return (cur?.w ?? -1) === newWatermark;
+	return didClaimWatermark(previousWatermark, newWatermark, changes, cur?.w ?? null);
 }
 
 /** Persist the remaining mutable state fields. Called after a successful
@@ -535,4 +634,3 @@ async function logDelivery(
 		)
 		.run();
 }
-

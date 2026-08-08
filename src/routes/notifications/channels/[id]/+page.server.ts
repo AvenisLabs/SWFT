@@ -1,9 +1,10 @@
-// +page.server.ts v0.1.0 — Load one channel + its rule + its schedules for the detail page.
+// +page.server.ts v0.2.0 — Load one channel + rules/schedules for the detail page.
 
 import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { getDb, queryFirst, queryAll } from '$lib/server/db';
 import { getChannel, type NotifRule, type NotifSchedule } from '$lib/server/notif-channels';
+import { listKIndexPushSchedules } from '$lib/server/notif-kindex-schedules';
 
 export const load: PageServerLoad = async ({ params, locals, platform }) => {
 	if (!locals.authUser) throw error(401, 'Authentication required.');
@@ -24,6 +25,7 @@ export const load: PageServerLoad = async ({ params, locals, platform }) => {
 		'SELECT * FROM notif_schedules WHERE channel_id = ? ORDER BY created_at ASC',
 		[id]
 	);
+	const kindexPushSchedules = await listKIndexPushSchedules(db, id);
 
-	return { channel, rule, schedules };
+	return { channel, rule, schedules, kindexPushSchedules };
 };

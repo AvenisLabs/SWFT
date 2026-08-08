@@ -1,9 +1,12 @@
-<!-- +page.svelte v0.2.0 — Channel detail: name/target editor + RuleEditor + ScheduleEditor + delivery snippet. -->
+<!-- +page.svelte v0.3.0 — Channel detail: editors + scheduled K-index pushes. -->
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import type { ApiResponse } from '$types/api';
 	import type { NotifChannel } from '$lib/server/notif-channels';
 	import RuleEditor from '$lib/components/notifications/RuleEditor.svelte';
 	import ScheduleEditor from '$lib/components/notifications/ScheduleEditor.svelte';
+	import KIndexPushEditor from '$lib/components/notifications/KIndexPushEditor.svelte';
+	import { formatUserTime } from '$lib/utils/timeFormat';
 
 	let { data } = $props();
 
@@ -12,6 +15,7 @@
 	const channel = $derived(channelLocal ?? data.channel);
 	const rule = $derived(data.rule);
 	const schedules = $derived(data.schedules);
+	const kindexPushSchedules = $derived(data.kindexPushSchedules);
 
 	let editingTop = $state(false);
 	// Initialized to empty; $effect below populates from `channel` (a $derived)
@@ -21,6 +25,11 @@
 	let errorMsg = $state<string | null>(null);
 	let successMsg = $state<string | null>(null);
 	let saving = $state(false);
+	let userTimeZone = $state<string | null>(null);
+
+	onMount(() => {
+		userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || null;
+	});
 
 	$effect(() => {
 		if (!editingTop) {
@@ -82,7 +91,7 @@
 		<div class="meta">
 			<span class="pill">{channel.kind}</span>
 			{#if !channel.enabled}<span class="pill warn">disabled</span>{/if}
-			<span class="meta-line">created {channel.created_at.slice(0, 10)}</span>
+			<span class="meta-line">created {formatUserTime(channel.created_at, userTimeZone)}</span>
 		</div>
 	</header>
 
@@ -112,6 +121,12 @@
 		<h3>Schedules</h3>
 		<p class="muted">Add windows during which this channel is active. With no windows the channel runs 24/7. Multiple windows are unioned. Outside any window, alerts are suppressed (or buffered if "off-hours digest" is enabled on the rule).</p>
 		<ScheduleEditor channelId={channel.id} initialSchedules={schedules} />
+	</div>
+
+	<div class="card">
+		<h3>K-index Pushes</h3>
+		<p class="muted">One-time and scheduled source snapshots for NOAA Boulder K-index, NOAA Estimated Kp, and GFZ Potsdam Hp30.</p>
+		<KIndexPushEditor channelId={channel.id} channelKind={channel.kind} initialSchedules={kindexPushSchedules} />
 	</div>
 </section>
 

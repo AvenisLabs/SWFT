@@ -1,5 +1,6 @@
-<!-- +page.svelte v0.2.0 — Channels list + create form. Detail/rule/schedule UI is under /notifications/channels/[id]. -->
+<!-- +page.svelte v0.3.0 — Channels list + create form. Detail/rule/schedule UI is under /notifications/channels/[id]. -->
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import type { ApiResponse } from '$types/api';
 	import type { NotifChannel } from '$lib/server/notif-channels';
 
@@ -19,6 +20,11 @@
 	let newKind = $state<'discord' | 'sms'>('discord');
 	let newTarget = $state('');
 	let newMention = $state('');
+	let userTimeZone = $state<string | null>(null);
+
+	onMount(() => {
+		userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || null;
+	});
 
 	function clearMessages() {
 		errorMsg = null;
@@ -76,18 +82,20 @@
 		}
 	}
 
-	async function sendTest(channel: NotifChannel) {
+	async function sendOneTimePush(channel: NotifChannel) {
 		clearMessages();
 		testingId = channel.id;
 		try {
-			const res = await fetch(`/api/v1/notifications/channels/${channel.id}/test`, {
+			const res = await fetch(`/api/v1/notifications/channels/${channel.id}/kindex-push`, {
 				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ timezone: userTimeZone, lookback_hours: 6 }),
 			});
 			const body = (await res.json()) as ApiResponse<{ status: number }>;
 			if (!res.ok || !body.ok) {
-				errorMsg = body.error ?? `Test failed (${res.status})`;
+				errorMsg = body.error ?? `One-time push failed (${res.status})`;
 			} else {
-				successMsg = `Test sent to "${channel.name}" (HTTP ${body.data.status}). Check the channel.`;
+				successMsg = `One-time K-index push sent to "${channel.name}" (HTTP ${body.data.status}).`;
 			}
 		} catch (err) {
 			errorMsg = err instanceof Error ? err.message : 'Network error';
@@ -191,8 +199,8 @@
 						{#if channel.mention}<div class="channel-mention">mentions <code>{channel.mention}</code></div>{/if}
 					</div>
 					<div class="channel-actions">
-						<button class="btn-secondary" onclick={() => sendTest(channel)} disabled={testingId === channel.id || !channel.enabled}>
-							{testingId === channel.id ? 'Sending…' : 'Test'}
+						<button class="btn-secondary" onclick={() => sendOneTimePush(channel)} disabled={testingId === channel.id || !channel.enabled || channel.kind !== 'discord'}>
+							{testingId === channel.id ? 'Sending...' : 'One-Time Push'}
 						</button>
 						<button class="btn-secondary" onclick={() => toggleEnabled(channel)}>
 							{channel.enabled ? 'Disable' : 'Enable'}

@@ -1,5 +1,6 @@
-// hooks.server.ts v0.3.0 — CORS for /api/*, CF Access identity load,
-// /notifications gating, and a hard block on pages.dev for notification paths.
+// hooks.server.ts v0.3.2 — CORS for /api/*, lazy CF Access identity resolution
+// (only on protected routes), /notifications gating, and a hard block on
+// pages.dev for notification paths.
 
 import type { Handle } from '@sveltejs/kit';
 import { error } from '@sveltejs/kit';
@@ -37,43 +38,43 @@ export const handle: Handle = async ({ event, resolve }) => {
 		);
 	}
 
-	// 2) Resolve CF Access identity (cheap header read). Available on every
-	// request so layouts/pages can show "Signed in as ..." without per-route
-	// boilerplate. The actual allowlist gate is enforced below for
-	// /notifications/* and via CF Access at the edge.
+	// 2) Identity is LAZY. Only protected routes need CF Access identity, so
+	// public pages (the homepage, API endpoints, etc.) skip the JWT decode
+	// and the D1 user lookup entirely. Earlier versions of this hook resolved
+	// identity on every request, which added a serial D1 round-trip to every
+	// SSR pageload for any user with an active CF Access session.
 	event.locals.authEmail = null;
 	event.locals.authUser = null;
-	const devEmail = event.platform?.env?.DEV_AUTH_EMAIL;
-	if (devEmail && !event.request.headers.get('Cf-Access-Authenticated-User-Email')) {
-		// Loud warning if DEV_AUTH_EMAIL is set anywhere a real CF Access header
-		// could have been expected — a misconfigured production secret would
-		// hand impersonation to anyone. The console.warn shows up in
-		// `wrangler tail` so it's visible during smoke tests.
-		console.warn(`[hooks] DEV_AUTH_EMAIL is set (${devEmail}); MUST be unset in production.`);
-	}
-	const email = getAuthEmail(event.request, devEmail);
-	if (email && event.platform?.env?.DB) {
-		event.locals.authEmail = email;
-		event.locals.authUser = await loadAuthUser(getDb(event.platform), email);
-	}
 
 	// 3) /notifications gate. CF Access is the primary gate at the edge; this
 	// is the defense-in-depth check that ensures a request reaching SvelteKit
 	// also exists in notif_users (the D1 mirror).
 	if (isProtectedRoute(event.url.pathname)) {
-		if (!event.locals.authEmail) {
-			// No CF Access header AND no dev override — the edge should have
-			// blocked this. Refuse loudly so misconfiguration surfaces fast.
+		const devEmail = event.platform?.env?.DEV_AUTH_EMAIL;
+		if (devEmail && !event.request.headers.get('Cf-Access-Authenticated-User-Email')) {
+			// Loud warning if DEV_AUTH_EMAIL is set anywhere a real CF Access
+			// header could have been expected — a misconfigured production
+			// secret would hand impersonation to anyone.
+			console.warn(`[hooks] DEV_AUTH_EMAIL is set (${devEmail}); MUST be unset in production.`);
+		}
+		const email = getAuthEmail(event.request, devEmail);
+		if (!email) {
 			throw error(401, 'Authentication required. This page is protected by Cloudflare Access.');
 		}
-		if (!event.locals.authUser) {
+		event.locals.authEmail = email;
+		if (!event.platform?.env?.DB) {
+			throw error(503, 'Database unavailable.');
+		}
+		const user = await loadAuthUser(getDb(event.platform), email);
+		if (!user) {
 			throw error(
 				403,
-				`Email ${event.locals.authEmail} is not authorized. Contact info@207systems.com for access.`
+				`Email ${email} is not authorized. Contact info@207systems.com for access.`
 			);
 		}
+		event.locals.authUser = user;
 		// Best-effort last-login bookkeeping. Non-blocking.
-		event.platform?.context?.waitUntil(touchLastLogin(getDb(event.platform), event.locals.authEmail));
+		event.platform?.context?.waitUntil(touchLastLogin(getDb(event.platform), email));
 	}
 
 	const response = await resolve(event);

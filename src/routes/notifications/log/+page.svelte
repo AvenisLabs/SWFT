@@ -1,11 +1,19 @@
-<!-- +page.svelte v0.1.0 — Delivery audit log. Last 200 rows, owner-scoped (admin sees all). -->
+<!-- +page.svelte v0.2.0 — Delivery audit log. Last 200 rows, owner-scoped (admin sees all). -->
 <script lang="ts">
+	import { onMount } from 'svelte';
+	import { formatUserTime } from '$lib/utils/timeFormat';
+
 	let { data } = $props();
 	const deliveries = $derived(data.deliveries);
 	const isAdminView = $derived(data.isAdminView);
 
-	let filterKind = $state<'all' | 'immediate' | 'summary' | 'off_hours_digest' | 'storm_end' | 'test'>('all');
+	let filterKind = $state<'all' | 'immediate' | 'summary' | 'off_hours_digest' | 'storm_end' | 'test' | 'kindex_push'>('all');
 	let filterStatus = $state<'all' | 'ok' | 'failed'>('all');
+	let userTimeZone = $state<string | null>(null);
+
+	onMount(() => {
+		userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || null;
+	});
 
 	const filtered = $derived(
 		deliveries.filter(d => {
@@ -28,6 +36,8 @@
 				return 'Storm end';
 			case 'test':
 				return 'Test';
+			case 'kindex_push':
+				return 'K-index push';
 			default:
 				return k;
 		}
@@ -62,6 +72,7 @@
 				<option value="off_hours_digest">Off-hours digest</option>
 				<option value="storm_end">Storm end</option>
 				<option value="test">Test</option>
+				<option value="kindex_push">K-index push</option>
 			</select>
 		</label>
 		<label>
@@ -91,7 +102,10 @@
 			<tbody>
 				{#each filtered as d (d.id)}
 					<tr class:row-error={!d.ok}>
-						<td class="muted" title={d.sent_at}>{timeAgo(d.sent_at)}</td>
+						<td class="muted" title={formatUserTime(d.sent_at, userTimeZone)}>
+							<div>{timeAgo(d.sent_at)}</div>
+							<div class="time-abs">{formatUserTime(d.sent_at, userTimeZone)}</div>
+						</td>
 						<td class="channel-cell">
 							<a href="/notifications/channels/{d.channel_id}" title={`Channel id ${d.channel_id}`}>{d.channel_name}</a>
 						</td>
@@ -178,6 +192,7 @@
 	.log-table tr:last-child td { border-bottom: none; }
 
 	.log-table .muted { color: var(--text-muted); font-family: var(--font-mono); }
+	.time-abs { margin-top: 2px; font-size: 0.68rem; white-space: nowrap; }
 	.log-table .channel-cell a { color: var(--text-primary); font-weight: 500; }
 
 	.status {

@@ -43,9 +43,19 @@
 	// Stale data detection — data >1 hour old means NOAA may be experiencing an outage
 	let staleTick = $state(0);
 	let dataIsStale = $derived(staleTick >= 0 && kpSummary ? isDataStale(kpSummary.current_time) : false);
+	function shouldRefreshNow() {
+		return (
+			kpSummary === null ||
+			kpEstimated.length === 0 ||
+			gnssRisk === null ||
+			isDataStale
+		);
+	}
 
 	onMount(() => {
-		refreshData();
+		if (shouldRefreshNow()) {
+			void refreshData();
+		}
 		const dataInterval = setInterval(refreshData, 180_000);
 		const staleInterval = setInterval(() => { staleTick++; }, 30_000);
 		return () => { clearInterval(dataInterval); clearInterval(staleInterval); };

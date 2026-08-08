@@ -32,10 +32,16 @@ describe('buildImmediateEmbed', () => {
 		expect(p.allowed_mentions?.parse).toEqual([]);
 	});
 
-	it('includes role mention in content when provided + sets allowed_mentions', () => {
+	it('includes role mention in content when Kp >= 6', () => {
 		const p = buildImmediateEmbed('Test', '<@&12345>', sampleEvent);
 		expect(p.content).toContain('<@&12345>');
 		expect(p.allowed_mentions?.parse).toEqual(['roles', 'users']);
+	});
+
+	it('omits mention when Kp is between 5 and 6', () => {
+		const p = buildImmediateEmbed('Test', '<@&12345>', { ...sampleEvent, kp_value: 5.33 });
+		expect(p.content).toBeUndefined();
+		expect(p.allowed_mentions?.parse).toEqual([]);
 	});
 
 	it('includes Bz and speed fields when present', () => {
@@ -65,6 +71,13 @@ describe('buildSummaryEmbed', () => {
 		expect(peakValue).toContain('7.33');
 	});
 
+	it('tags only when the peak Kp in the batch reaches 6', () => {
+		const belowThreshold: KpEvent[] = [{ ...sampleEvent, kp_value: 5.33 }];
+		const atThreshold: KpEvent[] = [{ ...sampleEvent, kp_value: 6.0 }];
+		expect(buildSummaryEmbed('Test', '<@&12345>', belowThreshold, 60).content).toBeUndefined();
+		expect(buildSummaryEmbed('Test', '<@&12345>', atThreshold, 60).content).toContain('<@&12345>');
+	});
+
 	it('caps embed description at 12 lines + "and N more"', () => {
 		const events: KpEvent[] = Array.from({ length: 20 }, (_, i) => ({
 			...sampleEvent,
@@ -87,6 +100,13 @@ describe('buildOffHoursDigestEmbed', () => {
 		expect(p.embeds?.[0].title).toContain('2');
 		const peakValue = p.embeds?.[0].fields?.find(f => f.name === 'Peak Kp')?.value;
 		expect(peakValue).toContain('5.67');
+	});
+
+	it('never tags, even with a high-Kp peak and a mention configured', () => {
+		const buf: BufferedEvent[] = [{ event_id: 1, ts: '2026-05-17T02:00:00.000Z', kp_value: 8.0, storm_class: 'G4' }];
+		const p = buildOffHoursDigestEmbed('Test', '<@&12345>', buf);
+		expect(p.content).toBeUndefined();
+		expect(p.allowed_mentions?.parse).toEqual([]);
 	});
 });
 
