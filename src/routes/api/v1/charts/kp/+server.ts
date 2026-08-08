@@ -1,5 +1,5 @@
 // GET /api/v1/charts/kp — Kp index chart PNG via QuickChart.io
-// v0.1.0
+// v0.2.0 — ?hours upper bound lowered 168 -> 24 to match kp_estimated retention.
 
 import type { RequestHandler } from './$types';
 import { getDb } from '$lib/server/db';
@@ -8,8 +8,8 @@ import { fetchKpChartPng } from '$lib/server/charts';
 import { CACHE_TTL } from '$lib/server/constants';
 
 export const GET: RequestHandler = async ({ platform, request, url }) => {
-	const hours = parseInt(url.searchParams.get('hours') ?? '48', 10);
-	const clamped = Math.min(Math.max(hours, 6), 168);
+	const hours = parseInt(url.searchParams.get('hours') ?? '24', 10);
+	const clamped = Math.min(Math.max(hours, 6), 24);
 
 	return withCache(request, `chart-kp-${clamped}`, CACHE_TTL.CHART_PNG, async () => {
 		try {

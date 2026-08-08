@@ -1,4 +1,8 @@
-// constants.ts v0.6.0 — NOAA data source URLs, panel definitions, thresholds
+// constants.ts v0.8.0 — NOAA data source URLs, panel definitions, thresholds.
+// STATUS TTL raised 30s → 300s after 2026-03-15 postmortem (30s caused ~390M
+// row reads over 6 days from unbounded COUNT(*) queries). Adds KP_EVENTS and
+// MODE_STATE TTLs for the Phase 5 search endpoint and monitoring-mode layout
+// data.
 
 /** Base URL for all NOAA JSON product endpoints */
 export const NOAA_BASE = 'https://services.swpc.noaa.gov';
@@ -102,10 +106,12 @@ export const CACHE_TTL = {
 	FRAME_IMAGE: 900,
 	CHART_PNG: 900,
 	KP_ESTIMATED: 120,
-	STATUS: 30,
+	STATUS: 300,
 	NEWS: 300,
 	EVENTS: 180,
+	KP_EVENTS: 60,          // searchable history — lower TTL so recent storms show up quickly
 	KP_SOURCES: 180,
+	MODE_STATE: 60,         // layout-level; short TTL so mode transitions surface on next nav
 } as const;
 
 /** Human-readable labels for all Kp data sources */

@@ -3,15 +3,17 @@ name = "swft-cron-ingest"
 main = "src/index.ts"
 compatibility_date = "2025-01-01"
 
-# Cron schedules: Kp+solar every 3min, alerts every 5min, summaries every 15min, links weekly
+# Single `*/5` schedule with an in-worker skip-gate replaces the old
+# `*/3 + */5 + */15` triad. The worker reads its own monitoring mode from
+# system_state and decides per-fire whether to do real work (hourly in
+# normal, every 15 min in elevated, every 5 min in storm). Weekly link
+# health check retained on its own schedule.
 [triggers]
-crons = ["*/3 * * * *", "*/5 * * * *", "*/15 * * * *", "0 12 * * 1"]
+crons = ["*/5 * * * *", "0 12 * * 1"]
 
-# Plain-text vars (secrets go via `wrangler secret put`)
 [vars]
 SITE_URL = "https://swft.skypixels.org"
 
-# Shared D1 database with the Pages app
 [[d1_databases]]
 binding = "DB"
 database_name = "swpc-web-db"

@@ -1,4 +1,6 @@
-// charts.ts v0.3.0 — QuickChart.io client for server-rendered chart PNGs
+// charts.ts v0.5.0 — QuickChart.io client for server-rendered chart PNGs.
+// Reads from kp_estimated (15-min buffer, 24h retention) since kp_obs was dropped
+// in migration 0007. Default window reduced 48h -> 24h to match buffer retention.
 
 import type { D1Database } from '@cloudflare/workers-types';
 import { queryAll } from './db';
@@ -8,20 +10,20 @@ interface KpChartRow {
 	kp: number;
 }
 
-/** Build a QuickChart.io URL for a Kp bar chart */
-export async function buildKpChartUrl(db: D1Database, hours = 48): Promise<string> {
-	// datetime(ts) normalises ISO 8601 'T'/'Z' format so the comparison works correctly
-	// Filter out future timestamps — NOAA data includes predictions
+/** Build a QuickChart.io URL for a Kp bar chart.
+ *  Pulls from kp_estimated (15-min buckets, up to 24h retention). */
+export async function buildKpChartUrl(db: D1Database, hours = 24): Promise<string> {
+	const cappedHours = Math.min(hours, 24);
+	const lowerBound = new Date(Date.now() - cappedHours * 3600_000).toISOString();
+	const upperBound = new Date().toISOString();
 	const rows = await queryAll<KpChartRow>(
 		db,
-		`SELECT ts, kp_value as kp FROM kp_obs
-		 WHERE datetime(ts) > datetime('now', ? || ' hours')
-		   AND datetime(ts) <= datetime('now')
+		`SELECT ts, kp_value as kp FROM kp_estimated
+		 WHERE ts > ? AND ts <= ?
 		 ORDER BY ts ASC`,
-		[`-${hours}`]
+		[lowerBound, upperBound]
 	);
 
-	// Format labels as short timestamps
 	const labels = rows.map(r => {
 		const d = new Date(r.ts);
 		return `${d.getUTCMonth() + 1}/${d.getUTCDate()} ${d.getUTCHours().toString().padStart(2, '0')}`;
@@ -29,7 +31,6 @@ export async function buildKpChartUrl(db: D1Database, hours = 48): Promise<strin
 
 	const values = rows.map(r => r.kp);
 
-	// Color each bar based on Kp severity
 	const colors = values.map(kp => {
 		if (kp >= 8) return '#ff4466';
 		if (kp >= 7) return '#f85149';
@@ -77,7 +78,7 @@ export async function buildKpChartUrl(db: D1Database, hours = 48): Promise<strin
 }
 
 /** Fetch chart PNG from QuickChart.io */
-export async function fetchKpChartPng(db: D1Database, hours = 48): Promise<Response> {
+export async function fetchKpChartPng(db: D1Database, hours = 24): Promise<Response> {
 	const url = await buildKpChartUrl(db, hours);
 	const res = await fetch(url);
 

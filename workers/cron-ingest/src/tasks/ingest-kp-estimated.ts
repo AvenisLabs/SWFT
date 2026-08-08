@@ -1,5 +1,15 @@
-// ingest-kp-estimated.ts v0.8.0 — Ingest estimated Kp with fallback chain:
-// 1. NOAA planetary_k_index_1m (global planetary Kp, primary source)
+// ingest-kp-estimated.ts v0.12.0 — Ingest estimated Kp with fallback chain, and
+// append Kp>=4 buckets to the persistent kp_events log. Retention of the
+// kp_estimated buffer expanded from 12h -> 24h so it doubles as the dashboard
+// source (kp_obs was dropped in migration 0007).
+//
+// Bz/speed enrichment: fetches a 25-hour window of solarwind_summary once per
+// run (covers the full kp_estimated retention so first-run catch-up still finds
+// neighbours), then matches each appended bucket via pure in-memory lookup
+// (30-min tolerance). Matching logic lives in ../lib/solar-wind-match.ts.
+//
+// Fallback chain:
+// 1. NOAA planetary_k_index_1m (global planetary Kp, primary)
 // 2. NOAA boulder_k_index_1m (single station fallback)
 // 3. GFZ Potsdam Hp30 (independent, 30-min resolution)
 // 4. Australian BoM K-index (independent continent/infrastructure)
@@ -13,12 +23,12 @@ import {
 	fetchBomKp,
 	type ParsedEstimatedKp,
 } from '../lib/noaa-client';
-import { upsertKpEstimated, updateCronState } from '../lib/db';
+import { upsertKpEstimated, appendKpEvents, updateCronState } from '../lib/db';
+import { nearestSolarWind, type SolarWindRow } from '../lib/solar-wind-match';
 
-/** Staleness threshold: data older than 30 minutes is considered stale */
 const STALE_THRESHOLD_MS = 30 * 60 * 1000;
+const BUFFER_RETENTION_HOURS = 24;
 
-/** Source labels for logging and D1 tracking */
 type KpSource = 'noaa' | 'noaa_boulder' | 'noaa_forecast' | 'gfz' | 'bom';
 
 interface FallbackResult {
@@ -27,19 +37,15 @@ interface FallbackResult {
 	buckets: ParsedEstimatedKp[];
 }
 
-/** Check if the latest bucket timestamp is fresh enough and contains plausible data.
- *  Rejects sources where the latest value is 0.0 but a prior bucket was >=1.0 —
- *  a sudden drop to exactly 0.0 from an elevated reading indicates a data glitch,
- *  not a legitimate geomagnetic quiet period. */
+/** Fresh = latest bucket <30 min old AND not an anomalous zero
+ *  (latest=0.0 while a prior reading was >=1.0 is treated as a data glitch). */
 function isFresh(buckets: ParsedEstimatedKp[]): boolean {
 	if (buckets.length === 0) return false;
-	const latest = buckets[buckets.length - 1]; // sorted ASC
+	const latest = buckets[buckets.length - 1];
 	const age = Date.now() - new Date(latest.ts).getTime();
 	if (age >= STALE_THRESHOLD_MS) return false;
 
-	// Detect anomalous zero: latest bucket is 0.0 but a recent prior bucket was elevated
 	if (latest.kp_value === 0 && buckets.length >= 2) {
-		// Check the 3 buckets before the latest (up to 45 min of prior data)
 		const prior = buckets.slice(-4, -1);
 		const maxPrior = Math.max(...prior.map(b => b.kp_value));
 		if (maxPrior >= 1.0) {
@@ -50,69 +56,51 @@ function isFresh(buckets: ParsedEstimatedKp[]): boolean {
 	return true;
 }
 
-/** Try each source in order, return the first with fresh data */
 async function fetchWithFallback(bomApiKey?: string): Promise<FallbackResult> {
-	// 1. Primary: NOAA planetary estimated Kp (global, 1-min → 15-min)
 	try {
 		const buckets = await fetchEstimatedKp();
-		if (isFresh(buckets)) {
-			return { source: 'noaa', label: 'NOAA Estimated Kp', buckets };
-		}
+		if (isFresh(buckets)) return { source: 'noaa', label: 'NOAA Estimated Kp', buckets };
 		console.log('[kp-fallback] NOAA primary data is stale/invalid, trying Boulder...');
 	} catch (err) {
 		console.error('[kp-fallback] NOAA primary failed:', err);
 	}
 
-	// 2. Fallback: Boulder K-index (single-station, 1-min → 15-min)
 	try {
 		const buckets = await fetchBoulderKp();
-		if (isFresh(buckets)) {
-			return { source: 'noaa_boulder', label: 'NOAA Boulder K-index', buckets };
-		}
-		console.log('[kp-fallback] Boulder K data is stale/invalid, trying forecast...');
+		if (isFresh(buckets)) return { source: 'noaa_boulder', label: 'NOAA Boulder K-index', buckets };
+		console.log('[kp-fallback] Boulder K data is stale/invalid, trying GFZ...');
 	} catch (err) {
 		console.error('[kp-fallback] Boulder K failed:', err);
 	}
 
-	// 3. Fallback: GFZ Potsdam Hp30 (independent, 30-min)
 	try {
 		const buckets = await fetchGfzKp();
-		if (buckets.length > 0) {
-			return { source: 'gfz', label: 'GFZ Potsdam Hp30', buckets };
-		}
+		if (buckets.length > 0) return { source: 'gfz', label: 'GFZ Potsdam Hp30', buckets };
 		console.log('[kp-fallback] GFZ Potsdam has no data, trying BoM...');
 	} catch (err) {
 		console.error('[kp-fallback] GFZ Potsdam failed:', err);
 	}
 
-	// 4. Fallback: Australian BoM K-index (independent continent)
 	if (bomApiKey) {
 		try {
 			const buckets = await fetchBomKp(bomApiKey);
-			if (buckets.length > 0) {
-				return { source: 'bom', label: 'Australian BoM K-index', buckets };
-			}
+			if (buckets.length > 0) return { source: 'bom', label: 'Australian BoM K-index', buckets };
 			console.log('[kp-fallback] BoM has no recent data, trying NOAA forecast...');
 		} catch (err) {
 			console.error('[kp-fallback] Australian BoM failed:', err);
 		}
 	}
 
-	// 5. Last resort: NOAA forecast "estimated" (3-hour granularity — least current data)
 	try {
 		const buckets = await fetchForecastEstimatedKp();
-		if (buckets.length > 0) {
-			return { source: 'noaa_forecast', label: 'NOAA Kp Forecast', buckets };
-		}
+		if (buckets.length > 0) return { source: 'noaa_forecast', label: 'NOAA Kp Forecast', buckets };
 	} catch (err) {
 		console.error('[kp-fallback] NOAA forecast failed:', err);
 	}
 
-	// All sources exhausted — return empty result with primary source tag
 	return { source: 'noaa', label: 'All sources failed', buckets: [] };
 }
 
-/** Read admin source override from cron_state (returns 'auto' if not set) */
 async function getSourceOverride(db: D1Database): Promise<string> {
 	try {
 		const row = await db.prepare(
@@ -124,7 +112,6 @@ async function getSourceOverride(db: D1Database): Promise<string> {
 	}
 }
 
-/** Fetch from a specific source by ID (for admin override) */
 async function fetchSpecificSource(sourceId: string, bomApiKey?: string): Promise<FallbackResult | null> {
 	const sourceMap: Record<string, { fn: () => Promise<ParsedEstimatedKp[]>; source: KpSource; label: string }> = {
 		noaa_boulder: { fn: fetchBoulderKp, source: 'noaa_boulder', label: 'NOAA Boulder K-index (forced)' },
@@ -155,14 +142,30 @@ async function fetchSpecificSource(sourceId: string, bomApiKey?: string): Promis
 	return null;
 }
 
-export async function ingestKpEstimated(db: D1Database, bomApiKey?: string): Promise<{ inserted: number; source: string }> {
+/** Fetch a 25-hour window of solar wind readings — covers full kp_estimated
+ *  retention so first-run catch-up still finds neighbours for older buckets.
+ *  Returning [] on failure means kp_events rows just get null Bz/speed — the
+ *  columns are nullable and advisory. */
+async function fetchSolarWindWindow(db: D1Database): Promise<SolarWindRow[]> {
 	try {
-		// Check for admin source override
+		const lowerBound = new Date(Date.now() - 25 * 3600_000).toISOString();
+		const rs = await db.prepare(
+			`SELECT ts, bz, speed FROM solarwind_summary
+			 WHERE ts > ?
+			 ORDER BY ts ASC`
+		).bind(lowerBound).all<SolarWindRow>();
+		return rs.results ?? [];
+	} catch {
+		return [];
+	}
+}
+
+export async function ingestKpEstimated(db: D1Database, bomApiKey?: string): Promise<{ inserted: number; source: string; events_appended: number }> {
+	try {
 		const override = await getSourceOverride(db);
 		let result: FallbackResult;
 
 		if (override !== 'auto') {
-			// Admin has forced a specific source — try it, fall back to auto if it fails
 			const forced = await fetchSpecificSource(override, bomApiKey);
 			if (forced) {
 				console.log(`[ingest-kp-estimated] Admin override active: ${override}`);
@@ -179,16 +182,28 @@ export async function ingestKpEstimated(db: D1Database, bomApiKey?: string): Pro
 
 		const inserted = await upsertKpEstimated(db, buckets, source);
 
-		// Purge rows older than 12 hours to keep the table lean
-		// datetime(ts) normalises ISO 8601 'T'/'Z' format for correct comparison
+		// Append Kp>=4 buckets to the persistent event log, enriched per-bucket
+		// with the nearest-neighbour solar wind reading (30-min tolerance).
+		const swWindow = await fetchSolarWindWindow(db);
+		const { inserted: eventsAppended } = await appendKpEvents(
+			db,
+			buckets.map(b => {
+				const sw = nearestSolarWind(swWindow, b.ts, 30 * 60_000);
+				return { ts: b.ts, kp_value: b.kp_value, bz_nt: sw.bz, speed_kms: sw.speed };
+			}),
+			source
+		);
+
+		// Buffer purge — 24h retention. Precomputed ISO bound keeps the ts index in play.
+		const purgeBound = new Date(Date.now() - BUFFER_RETENTION_HOURS * 3600_000).toISOString();
 		await db.prepare(
-			"DELETE FROM kp_estimated WHERE datetime(ts) < datetime('now', '-12 hours')"
-		).run();
+			"DELETE FROM kp_estimated WHERE ts < ?"
+		).bind(purgeBound).run();
 
 		const statusMsg = source === 'noaa' ? 'ok' : `ok_fallback:${source}`;
 		await updateCronState(db, 'ingest-kp-estimated', statusMsg, inserted);
-		console.log(`[ingest-kp-estimated] source=${label}, inserted=${inserted}`);
-		return { inserted, source };
+		console.log(`[ingest-kp-estimated] source=${label}, inserted=${inserted}, events_appended=${eventsAppended}`);
+		return { inserted, source, events_appended: eventsAppended };
 	} catch (err) {
 		const msg = err instanceof Error ? err.message : 'Unknown error';
 		await updateCronState(db, 'ingest-kp-estimated', 'error', 0, msg);

@@ -1,37 +1,11 @@
-# SWPC-Web Summary Log
+# SWFT Summary Log
 
-## 2026-02-23 14:13 — Audit and improve CLAUDE.md
+## 2026-08-08 — Discord webhook tagging: Kp-6 threshold + daily reports never tag
 
-Comprehensive audit of CLAUDE.md against actual codebase. Key corrections:
-- Migration count: 4 → 5 (added 0005_kp_estimated_source.sql)
-- Table count: 12 → 13 (was undercounting)
-- Added missing `src/lib/server/` modules (kp.ts, kp-sources.ts, alerts.ts, events.ts, charts.ts, panels.ts, solarwind.ts, links.ts)
-- Added missing cron worker lib files (discord.ts, link-crawler.ts, link-checker.ts)
-- Added undocumented `/ingest-kp` HTTP endpoint on cron worker
-- Added `/data-sources` page and `/admin/` section (4 admin pages) to key directories
-- Added complete API endpoint listing (public + admin)
-- Fixed D1 source column values: `kp_obs` defaults to `'swpc'`, `kp_estimated` defaults to `'noaa'`
-- Added platform binding `BOM_API_KEY` to app.d.ts description
-- Documented client-side refresh intervals (layout=2min, homepage=3min, stale ticker=30s)
-- Documented storm banner system (G2/G3/G4 tiers with 30-min hysteresis)
-- Noted display vs. ingest source priority discrepancy (kp-sources.ts labels Boulder as "Primary" for reliability, but ingest code tries NOAA Estimated first)
-- Noted `formatters.ts` deprecation in favor of `timeFormat.ts`
-- Added 0005 migration to schema section
-
-## 2026-02-23 14:42 — Comprehensive README.md rewrite
-
-Replaced the stale README.md (from 2026-02-09) with a comprehensive version covering the full current state of the project. Key changes from the old README:
-- Fixed live site URL: swft-web.pages.dev → swft.skypixels.org
-- Fixed GNSS risk weights: was 35%/20%/20%/25%, now correct 40%/25%/20%/15%
-- Fixed database table count: 9 → 13 (5 migrations)
-- Added complete 5-source Kp fallback chain documentation with priority table
-- Added Knowledge Hub section (10 articles across 3 audiences)
-- Added admin tools section (4 admin pages)
-- Added data-sources page documentation
-- Expanded API reference from 12 to 22 endpoints (including admin endpoints with cache TTLs)
-- Added detailed project history section with dates and key technical decisions (CLS fix, D1 datetime bug, anomalous-zero detection)
-- Added environment variables table with secrets management note
-- Added client-side refresh interval table (layout=2min, homepage=3min, staleness=30s)
-- Updated architecture diagram to show all 5 data sources
-- Updated roadmap to reflect completed vs. planned work
-- Added GFZ Potsdam and Australian BoM to data attribution
+- Changed the Discord mention/tag behavior across notification embeds:
+  - `buildImmediateEmbed` and `buildSummaryEmbed` (`workers/cron-ingest/src/lib/notif-embeds.ts`) now only include the channel's configured mention when the relevant Kp value (event Kp for immediate, peak Kp in the batch for summary) is >= 6. Events between Kp 5 and 6 still post normally, just without a tag.
+  - `buildOffHoursDigestEmbed` now never tags, regardless of the channel's mention setting or peak Kp in the buffered batch — it's a daily-style digest, not a time-sensitive alert.
+  - Scheduled K-index pushes (`dispatch-kindex-pushes.ts`) now pass `null` for mention instead of the channel's configured mention, so the daily scheduled K-index report never tags. The on-demand "one-time push" endpoint (manually triggered from the admin UI) is left unchanged and still respects the channel's mention.
+- Added regression tests in `tests/notif-embeds.test.ts` covering: mention included at Kp >= 6, mention omitted for Kp 5-6, summary tagging gated on peak Kp, and off-hours digest never tagging even with a configured mention and high peak Kp.
+- Validation: `npx vitest run` (162 tests passed), `npx tsc --noEmit -p workers/cron-ingest` (clean), `npx svelte-check` (0 errors, 0 warnings).
+- Rotated `summarylog.md` — previous log (last entry 2026-05-17) renamed to `summarylog_2026-05-17.md`.

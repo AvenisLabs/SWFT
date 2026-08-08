@@ -1,4 +1,5 @@
-// gnss-risk.ts v0.4.0 — GNSS risk calculator (Kp from real-time estimated + Bz + speed + R-scale)
+// gnss-risk.ts v0.5.0 — GNSS risk calculator (Kp from real-time estimated + Bz + speed + R-scale).
+// Uses precomputed ISO bound for the R-scale alert lookup (see 2026-03-15 D1 postmortem).
 
 import type { D1Database } from '@cloudflare/workers-types';
 import { queryFirst } from './db';
@@ -16,7 +17,7 @@ interface LatestConditions {
 
 /** Fetch the latest space weather conditions from D1 */
 async function getLatestConditions(db: D1Database): Promise<LatestConditions> {
-	// Use real-time estimated Kp (15-min intervals) instead of 3-hour kp_obs
+	// Use real-time estimated Kp (15-min intervals from kp_estimated — the 24h buffer)
 	const [kpRow, swRow] = await Promise.all([
 		queryFirst<{ kp_value: number; ts: string }>(
 			db, 'SELECT kp_value, ts FROM kp_estimated ORDER BY ts DESC LIMIT 1'
@@ -27,12 +28,14 @@ async function getLatestConditions(db: D1Database): Promise<LatestConditions> {
 	]);
 
 	// R-scale from most recent classified alert (radio blackout type)
+	const rScaleBound = new Date(Date.now() - 6 * 3600_000).toISOString();
 	const rAlert = await queryFirst<{ scale_value: number }>(
 		db,
 		`SELECT scale_value FROM alerts_classified
 		 WHERE scale_type = 'R' AND scale_value IS NOT NULL
-		   AND begins > datetime('now', '-6 hours')
-		 ORDER BY begins DESC LIMIT 1`
+		   AND begins > ?
+		 ORDER BY begins DESC LIMIT 1`,
+		[rScaleBound]
 	);
 
 	return {
